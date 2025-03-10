@@ -1,0 +1,3 @@
+[ui]
+hideTopBar = false  # Mantener la barra superior (para recargar app, etc.)
+hideSidebarNav = true  # Ocultar el menú de navegación lateral
