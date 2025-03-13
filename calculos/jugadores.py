@@ -175,3 +175,168 @@ def analizar_goles_por_tiempo(goles_df):
     goles_por_minuto = goles_df['rango_minuto'].value_counts().sort_index()
     
     return goles_por_minuto
+
+def analizar_goles_por_jugador(goles_df, actas_df):
+    """
+    Analiza los goles marcados por cada jugador
+    
+    Args:
+        goles_df: DataFrame con los datos de goles
+        actas_df: DataFrame con los datos de actas para información adicional
+        
+    Returns:
+        DataFrame: DataFrame con goles por jugador ordenado de mayor a menor
+    """
+    # Contar goles por jugador
+    goles_por_jugador = goles_df['jugador'].value_counts().reset_index()
+    goles_por_jugador.columns = ['jugador', 'goles']
+    
+    # Ordenar por número de goles (descendente)
+    goles_por_jugador = goles_por_jugador.sort_values('goles', ascending=False)
+    
+    return goles_por_jugador
+
+def analizar_tarjetas_por_jugador(actas_df):
+    """
+    Analiza las tarjetas recibidas por cada jugador
+    
+    Args:
+        actas_df: DataFrame con los datos de actas
+        
+    Returns:
+        DataFrame: DataFrame con tarjetas por jugador
+    """
+    # Agrupar por jugador y sumar tarjetas
+    tarjetas_por_jugador = actas_df.groupby('jugador').agg({
+        'Tarjetas Amarillas': 'sum',
+        'Tarjetas Rojas': 'sum'
+    }).reset_index()
+    
+    # Calcular el total de tarjetas (1 punto por amarilla, 3 por roja)
+    tarjetas_por_jugador['Total Puntos'] = (
+        tarjetas_por_jugador['Tarjetas Amarillas'] + 
+        3 * tarjetas_por_jugador['Tarjetas Rojas']
+    )
+    
+    # Filtrar jugadores con al menos 1 tarjeta
+    tarjetas_por_jugador = tarjetas_por_jugador[tarjetas_por_jugador['Total Puntos'] > 0]
+    
+    # Ordenar por puntos totales (descendente)
+    tarjetas_por_jugador = tarjetas_por_jugador.sort_values('Total Puntos', ascending=False)
+    
+    return tarjetas_por_jugador
+
+def analizar_minutos_por_jugador(actas_df):
+    """
+    Analiza los minutos jugados por cada jugador con diferentes desgloses
+    
+    Args:
+        actas_df: DataFrame con los datos de actas
+        
+    Returns:
+        DataFrame: DataFrame con análisis detallado de minutos por jugador
+    """
+    # Crear un DataFrame para almacenar los resultados
+    minutos_jugador = pd.DataFrame()
+    
+    # Calcular minutos totales por jugador
+    minutos_totales = actas_df.groupby('jugador')['minutos_jugados'].sum().reset_index()
+    minutos_totales.columns = ['jugador', 'minutos_totales']
+    
+    # Contar partidos jugados por jugador
+    partidos_jugados = actas_df.groupby('jugador').size().reset_index(name='partidos')
+    
+    # Contar partidos como titular
+    titularidades = actas_df[actas_df['status'] == 'Titular'].groupby('jugador').size().reset_index(name='titular')
+    
+    # Contar partidos como suplente
+    suplencias = actas_df[actas_df['status'] != 'Titular'].groupby('jugador').size().reset_index(name='suplente')
+    
+    # Calcular minutos como local
+    minutos_local = actas_df[actas_df['localizacion'] == 'Local'].groupby('jugador')['minutos_jugados'].sum().reset_index()
+    minutos_local.columns = ['jugador', 'minutos_local']
+    
+    # Calcular minutos como visitante
+    minutos_visitante = actas_df[actas_df['localizacion'] == 'Visitante'].groupby('jugador')['minutos_jugados'].sum().reset_index()
+    minutos_visitante.columns = ['jugador', 'minutos_visitante']
+    
+    # Calcular minutos como titular
+    minutos_titular = actas_df[actas_df['status'] == 'Titular'].groupby('jugador')['minutos_jugados'].sum().reset_index()
+    minutos_titular.columns = ['jugador', 'minutos_titular']
+    
+    # Calcular minutos como suplente
+    minutos_suplente = actas_df[actas_df['status'] != 'Titular'].groupby('jugador')['minutos_jugados'].sum().reset_index()
+    minutos_suplente.columns = ['jugador', 'minutos_suplente']
+    
+    # Unir todos los DataFrames
+    minutos_jugador = pd.merge(minutos_totales, partidos_jugados, on='jugador', how='left')
+    minutos_jugador = pd.merge(minutos_jugador, titularidades, on='jugador', how='left')
+    minutos_jugador = pd.merge(minutos_jugador, suplencias, on='jugador', how='left')
+    minutos_jugador = pd.merge(minutos_jugador, minutos_local, on='jugador', how='left')
+    minutos_jugador = pd.merge(minutos_jugador, minutos_visitante, on='jugador', how='left')
+    minutos_jugador = pd.merge(minutos_jugador, minutos_titular, on='jugador', how='left')
+    minutos_jugador = pd.merge(minutos_jugador, minutos_suplente, on='jugador', how='left')
+    
+    # Calcular promedios y porcentajes
+    minutos_jugador['promedio_por_partido'] = minutos_jugador['minutos_totales'] / minutos_jugador['partidos']
+    
+    # Llenar valores NaN con 0
+    minutos_jugador = minutos_jugador.fillna(0)
+    
+    # Calcular porcentaje del total de minutos del equipo
+    total_minutos_equipo = minutos_jugador['minutos_totales'].sum()
+    minutos_jugador['porcentaje_del_total'] = (minutos_jugador['minutos_totales'] / total_minutos_equipo) * 100
+    
+    # Ordenar por minutos totales (descendente)
+    minutos_jugador = minutos_jugador.sort_values('minutos_totales', ascending=False)
+    
+    return minutos_jugador
+
+def analizar_minutos_por_jornada(actas_df):
+    """
+    Analiza los minutos jugados por jornada y condición
+    
+    Args:
+        actas_df: DataFrame con los datos de actas
+        
+    Returns:
+        DataFrame: DataFrame con minutos por jornada y condición
+    """
+    # Calcular minutos por jornada
+    minutos_jornada = actas_df.groupby(['jornada', 'localizacion'])['minutos_jugados'].sum().reset_index()
+    
+    # Pivotear para tener local y visitante como columnas
+    minutos_pivot = minutos_jornada.pivot(index='jornada', columns='localizacion', values='minutos_jugados').reset_index()
+    minutos_pivot = minutos_pivot.rename(columns={'Local': 'minutos_local', 'Visitante': 'minutos_visitante'})
+    
+    # Llenar valores NaN con 0
+    minutos_pivot = minutos_pivot.fillna(0)
+    
+    # Calcular total por jornada
+    minutos_pivot['total'] = minutos_pivot['minutos_local'] + minutos_pivot['minutos_visitante']
+    
+    return minutos_pivot
+
+def analizar_distribucion_sustituciones(sustituciones_df):
+    """
+    Analiza cuándo ocurren las sustituciones durante los partidos
+    
+    Args:
+        sustituciones_df: DataFrame con los datos de sustituciones
+        
+    Returns:
+        DataFrame: DataFrame con conteo de sustituciones por rango de minutos
+    """
+    # Crear rangos de minutos para agrupar
+    sustituciones_df = sustituciones_df.copy()
+    sustituciones_df['rango_minuto'] = pd.cut(
+        sustituciones_df['Minuto'], 
+        bins=[0, 15, 30, 45, 60, 75, 90, 105],
+        labels=['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '91+']
+    )
+    
+    # Contar sustituciones por rango de minutos
+    sustituciones_por_minuto = sustituciones_df['rango_minuto'].value_counts().sort_index().reset_index()
+    sustituciones_por_minuto.columns = ['rango', 'cantidad']
+    
+    return sustituciones_por_minuto

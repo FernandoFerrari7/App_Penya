@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
+from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, COLOR_TARJETAS_AMARILLAS, COLOR_TARJETAS_ROJAS
 
 def mostrar_resumen_equipo(estadisticas):
     """
@@ -54,7 +55,7 @@ def graficar_tarjetas_por_jornada(tarjetas_df):
         y=tarjetas_df['Tarjetas Amarillas'],
         mode='lines+markers',
         name='Amarillas',
-        line=dict(color='#FFD700', width=2),
+        line=dict(color=COLOR_TARJETAS_AMARILLAS, width=2),
         marker=dict(size=8)
     ))
     
@@ -64,7 +65,7 @@ def graficar_tarjetas_por_jornada(tarjetas_df):
         y=tarjetas_df['Tarjetas Rojas'],
         mode='lines+markers',
         name='Rojas',
-        line=dict(color='#FF4136', width=2),
+        line=dict(color=COLOR_TARJETAS_ROJAS, width=2),
         marker=dict(size=8)
     ))
     
@@ -80,6 +81,11 @@ def graficar_tarjetas_por_jornada(tarjetas_df):
             xanchor="right",
             x=1
         )
+    )
+    
+    # Personalizar tooltip
+    fig.update_traces(
+        hovertemplate='<b>Jornada %{x}</b><br>Tarjetas: %{y}<extra></extra>'
     )
     
     # Mostrar el gráfico
@@ -100,15 +106,14 @@ def graficar_goles_por_tiempo(goles_por_tiempo):
     df = goles_por_tiempo.reset_index()
     df.columns = ['Rango', 'Goles']
     
-    # Crear gráfico de barras
+    # Crear gráfico de barras con el color del Penya
     fig = px.bar(
         df,
         x='Rango',
         y='Goles',
         title='Distribución de Goles por Minuto',
         labels={'Rango': 'Rango de Minutos', 'Goles': 'Número de Goles'},
-        color='Goles',
-        color_continuous_scale='Greens'
+        color_discrete_sequence=[PENYA_PRIMARY_COLOR]  # Color naranja del Penya
     )
     
     # Personalizar el gráfico
@@ -116,6 +121,11 @@ def graficar_goles_por_tiempo(goles_por_tiempo):
         xaxis_title='Rango de Minutos',
         yaxis_title='Número de Goles',
         showlegend=False
+    )
+    
+    # Personalizar tooltip
+    fig.update_traces(
+        hovertemplate='<b>%{x}</b><br>Goles: %{y}<extra></extra>'
     )
     
     # Mostrar el gráfico
@@ -136,20 +146,21 @@ def graficar_tipos_goles(tipos_goles):
     df = tipos_goles.reset_index()
     df.columns = ['Tipo', 'Cantidad']
     
-    # Crear gráfico de pastel
+    # Crear gráfico de pastel con colores del Penya
     fig = px.pie(
         df,
         values='Cantidad',
         names='Tipo',
         title='Tipos de Goles Marcados',
-        color_discrete_sequence=px.colors.sequential.Greens
+        color_discrete_sequence=[PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, "#555555", "#777777"]
     )
     
     # Personalizar el gráfico
     fig.update_traces(
         textposition='inside',
         textinfo='percent+label',
-        hole=0.4
+        hole=0.4,
+        hovertemplate='<b>%{label}</b><br>Cantidad: %{value}<br>(%{percent})<extra></extra>'
     )
     
     # Mostrar el gráfico
@@ -178,8 +189,7 @@ def graficar_goles_por_rival(goles_rival_df, top_n=10):
         orientation='h',
         title=f'Goles Marcados por Rival',
         labels={'rival': 'Equipo Rival', 'goles': 'Goles'},
-        color='goles',
-        color_continuous_scale='Blues'
+        color_discrete_sequence=[PENYA_PRIMARY_COLOR]  # Color naranja del Penya
     )
     
     # Personalizar el gráfico

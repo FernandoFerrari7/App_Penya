@@ -8,10 +8,60 @@ import pandas as pd
 from utils.data import cargar_datos
 from utils.ui import show_sidebar
 from calculos.jugadores import calcular_estadisticas_jugador, obtener_minutos_por_jornada
-from visualizaciones.jugadores import mostrar_tarjeta_jugador, graficar_minutos_por_jornada
+from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR
 
 # Cargar datos
 data = cargar_datos()
+
+def mostrar_tarjeta_jugador(estadisticas):
+    """
+    Muestra la tarjeta de estadísticas de un jugador
+    
+    Args:
+        estadisticas: Diccionario con estadísticas del jugador
+    """
+    if not estadisticas:
+        st.warning("No se encontraron datos para este jugador")
+        return
+    
+    # Crear columnas para la tarjeta
+    col1, col2 = st.columns([1, 3])
+    
+    with col1:
+        # Avatar placeholder (se podría reemplazar con foto real del jugador)
+        st.image("https://via.placeholder.com/150", width=150)
+    
+    with col2:
+        # Nombre del jugador
+        st.title(estadisticas['nombre'])
+        
+        # Estadísticas principales
+        col_a, col_b, col_c, col_d = st.columns(4)
+        
+        with col_a:
+            st.metric("Goles", estadisticas['goles'])
+        
+        with col_b:
+            st.metric("Tarjetas", f"{estadisticas['tarjetas_amarillas']}🟨 / {estadisticas['tarjetas_rojas']}🟥")
+        
+        with col_c:
+            st.metric("Minutos", estadisticas['minutos_jugados'])
+        
+        with col_d:
+            st.metric("Partidos", estadisticas['partidos_jugados'])
+    
+    # Más detalles
+    st.subheader("Participación")
+    col_a, col_b, col_c = st.columns(3)
+    
+    with col_a:
+        st.metric("Titular", estadisticas['titularidades'])
+    
+    with col_b:
+        st.metric("Suplente", estadisticas['suplencias'])
+    
+    with col_c:
+        st.metric("Min/Partido", estadisticas['minutos_por_partido'])
 
 def main():
     """Función principal que muestra el análisis de jugadores"""
@@ -45,7 +95,35 @@ def main():
     # Análisis de minutos por jornada
     st.header("Minutos por Jornada")
     minutos_jornada = obtener_minutos_por_jornada(data['actas_penya'], jugador_seleccionado)
-    graficar_minutos_por_jornada(minutos_jornada)
+    
+    # Crear gráfico de barras para minutos por jornada
+    if not minutos_jornada.empty:
+        # Crear gráfico con Plotly
+        import plotly.express as px
+        
+        fig = px.bar(
+            minutos_jornada, 
+            x='jornada', 
+            y='minutos_jugados',
+            color='es_titular',
+            labels={'jornada': 'Jornada', 'minutos_jugados': 'Minutos Jugados', 'es_titular': 'Titular'},
+            title='Minutos Jugados por Jornada',
+            color_discrete_map={True: PENYA_PRIMARY_COLOR, False: '#666666'},
+            hover_data=['rival']
+        )
+        
+        # Personalizar el gráfico
+        fig.update_layout(
+            xaxis_title='Jornada',
+            yaxis_title='Minutos',
+            yaxis_range=[0, 100],
+            legend_title="Condición"
+        )
+        
+        # Mostrar el gráfico
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No hay datos de minutos para este jugador")
     
     # Mostrar tabla de participación por partido
     st.header("Detalle por Partido")
