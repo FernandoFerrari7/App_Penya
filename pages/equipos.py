@@ -3,9 +3,8 @@ Página de análisis de equipos y partidos
 """
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import numpy as np
+import plotly.express as px
 
 # Importar módulos propios
 from utils.data import cargar_datos
@@ -18,12 +17,15 @@ from calculos.jugadores import (
     analizar_minutos_por_jugador,
     analizar_distribucion_sustituciones
 )
-from visualizaciones.equipo import graficar_tarjetas_por_jornada, graficar_tipos_goles, graficar_goles_por_tiempo
+from visualizaciones.equipo import (
+    graficar_tarjetas_por_jornada, 
+    graficar_tipos_goles, 
+    graficar_goles_por_tiempo
+)
 from visualizaciones.jugadores import graficar_goles_por_jugador, graficar_tarjetas_por_jugador
 from visualizaciones.minutos import (
     graficar_minutos_por_jugador,
     graficar_minutos_por_jugador_desglose,
-    graficar_porcentaje_minutos_jugador,
     graficar_distribucion_sustituciones
 )
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR
@@ -200,10 +202,10 @@ def main():
     # Separador
     st.markdown("---")
     
-    # CAMBIO: Colocar en la misma fila "Análisis de Minutos por Jugador" y "Partidos y Rivales"
-    col_minutos, col_partidos = st.columns(2)
+    # CAMBIO: Colocar en la misma fila "Análisis de Minutos por Jugador" y "Distribución de Sustituciones"
+    col_minutos, col_sustituciones = st.columns(2)
     
-    # Sección de Análisis de Minutos (ahora en columna izquierda)
+    # Sección de Análisis de Minutos (columna izquierda)
     with col_minutos:
         st.subheader("Análisis de Minutos por Jugador")
         
@@ -226,221 +228,22 @@ def main():
             graficar_minutos_por_jugador_desglose(minutos_jugador, top_n=None, tipo_desglose='titular_suplente',
                                                   color_izquierda=PENYA_PRIMARY_COLOR, color_derecha=PENYA_SECONDARY_COLOR)
     
-    # Sección de Partidos y Rivales (ahora en columna derecha)
-    with col_partidos:
-        st.subheader("Partidos y Rivales")
+    # Sección de Distribución de Sustituciones (columna derecha)
+    with col_sustituciones:
+        st.subheader("Distribución de Sustituciones")
         
-        # Separar en pestañas
-        partido_tab1, partido_tab2, partido_tab3 = st.tabs([
-            "Calendario de Partidos", 
-            "Rendimiento contra Rivales",
-            "Local vs Visitante"
-        ])
-        
-        with partido_tab1:
-            # Mostrar tabla de partidos
-            partidos = data['partidos_penya'].copy()
+        # Comprobar si hay datos de sustituciones
+        if 'sustituciones_penya' in data:
+            # Calcular distribución de sustituciones
+            sustituciones_data = analizar_distribucion_sustituciones(data['sustituciones_penya'])
             
-            # Determinar si Penya Independent jugó como local o visitante
-            partidos['es_local'] = partidos['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)
-            
-            # Crear columna con el rival
-            partidos['rival'] = np.where(
-                partidos['es_local'],
-                partidos['equipo_visitante'],
-                partidos['equipo_local']
-            )
-            
-            # Calcular goles a favor por jornada basado en goles_penya
-            goles_favor_por_jornada = data['goles_penya'].groupby('Jornada').size().to_dict()
-            
-            # Calcular goles en contra (necesitamos inferirlo de otra forma)
-            # Podemos intentar obtenerlo de las actas agrupando por jornada y sumando los goles del rival
-            # Este es un enfoque aproximado que depende de la estructura de los datos
-            
-            # Agregar goles a favor a la tabla de partidos
-            partidos['goles_penya'] = partidos['jornada'].map(goles_favor_por_jornada).fillna(0).astype(int)
-            
-            # Formatear tabla para mostrar
-            tabla_partidos = partidos[['jornada', 'equipo_local', 'equipo_visitante', 'rival', 'es_local']]
-            tabla_partidos['Goles Marcados'] = tabla_partidos['jornada'].map(goles_favor_por_jornada).fillna(0).astype(int)
-            tabla_partidos['Condición'] = tabla_partidos['es_local'].map({True: 'Local', False: 'Visitante'})
-            tabla_partidos = tabla_partidos.rename(columns={
-                'jornada': 'Jornada',
-                'equipo_local': 'Local',
-                'equipo_visitante': 'Visitante',
-                'rival': 'Rival'
-            })
-            
-            # Mostrar tabla
-            st.dataframe(
-                tabla_partidos[['Jornada', 'Local', 'Visitante', 'Rival', 'Goles Marcados', 'Condición']],
-                hide_index=True,
-                use_container_width=True
-            )
-        
-        with partido_tab2:
-            # Rendimiento contra rivales (goles marcados)
-            
-            # Obtener los rivales de cada jornada
-            rivales_jornada = partidos.set_index('jornada')['rival'].to_dict()
-            
-            # Contar goles por jornada para obtener goles a favor
-            goles_jornada = data['goles_penya'].groupby('Jornada').size().to_dict()
-            
-            # Crear un DataFrame para almacenar goles por rival
-            goles_por_rival = []
-            for jornada, rival in rivales_jornada.items():
-                if jornada in goles_jornada:
-                    goles_por_rival.append({
-                        'rival': rival,
-                        'jornada': jornada,
-                        'goles': goles_jornada[jornada]
-                    })
-            
-            goles_rival_df = pd.DataFrame(goles_por_rival)
-            
-            # Agrupar por rival y sumar goles
-            if not goles_rival_df.empty:
-                goles_por_rival_agrupado = goles_rival_df.groupby('rival')['goles'].sum().reset_index()
-                
-                # Ordenar por nombre del rival
-                goles_por_rival_agrupado = goles_por_rival_agrupado.sort_values('rival')
-                
-                # Crear gráfico
-                fig = px.bar(
-                    goles_por_rival_agrupado,
-                    x='rival',
-                    y='goles',
-                    title='Goles Marcados por Rival',
-                    labels={'rival': 'Equipo Rival', 'goles': 'Goles'},
-                    color_discrete_sequence=[PENYA_PRIMARY_COLOR]
-                )
-                
-                # Personalizar el gráfico
-                fig.update_layout(
-                    xaxis_title='Rival',
-                    yaxis_title='Goles',
-                    xaxis={'categoryorder': 'total descending'},
-                    showlegend=False
-                )
-                
-                # Personalizar tooltip
-                fig.update_traces(
-                    hovertemplate='<b>%{x}</b><br>Goles: %{y}<extra></extra>'
-                )
-                
-                # Mostrar el gráfico
-                st.plotly_chart(fig, use_container_width=True)
-                
-                # Crear una visualización de tendencia de goles por jornada
-                st.subheader("Tendencia de Goles por Jornada")
-                
-                # Ordenar por jornada
-                goles_tendencia = goles_rival_df.sort_values('jornada')
-                
-                # Añadir el rival a la jornada para el eje X
-                goles_tendencia['jornada_rival'] = goles_tendencia['jornada'].astype(str) + ' - ' + goles_tendencia['rival']
-                
-                # Crear gráfico de línea
-                fig_tendencia = px.line(
-                    goles_tendencia,
-                    x='jornada',
-                    y='goles',
-                    markers=True,
-                    title='Tendencia de Goles Marcados por Jornada',
-                    labels={'jornada': 'Jornada', 'goles': 'Goles Marcados'},
-                    hover_data=['rival']
-                )
-                
-                # Personalizar el gráfico
-                fig_tendencia.update_traces(
-                    line_color=PENYA_PRIMARY_COLOR,
-                    marker=dict(size=8, color=PENYA_PRIMARY_COLOR)
-                )
-                
-                fig_tendencia.update_layout(
-                    xaxis_title='Jornada',
-                    yaxis_title='Goles',
-                    hovermode='x unified'
-                )
-                
-                # Mostrar el gráfico
-                st.plotly_chart(fig_tendencia, use_container_width=True)
-            else:
-                st.warning("No hay datos disponibles para este análisis")
-        
-        with partido_tab3:
-            # Análisis de rendimiento como local vs visitante
-            
-            # Crear tablas para cada jornada con el rol (local/visitante)
-            jornadas_local = partidos[partidos['es_local']]['jornada'].tolist()
-            jornadas_visitante = partidos[~partidos['es_local']]['jornada'].tolist()
-            
-            # Contar goles como local y visitante
-            goles_local = data['goles_penya'][data['goles_penya']['Jornada'].isin(jornadas_local)].shape[0]
-            goles_visitante = data['goles_penya'][data['goles_penya']['Jornada'].isin(jornadas_visitante)].shape[0]
-            
-            # Contar tarjetas como local y visitante
-            tarjetas_local_amarillas = data['actas_penya'][data['actas_penya']['jornada'].isin(jornadas_local)]['Tarjetas Amarillas'].sum()
-            tarjetas_local_rojas = data['actas_penya'][data['actas_penya']['jornada'].isin(jornadas_local)]['Tarjetas Rojas'].sum()
-            
-            tarjetas_visitante_amarillas = data['actas_penya'][data['actas_penya']['jornada'].isin(jornadas_visitante)]['Tarjetas Amarillas'].sum()
-            tarjetas_visitante_rojas = data['actas_penya'][data['actas_penya']['jornada'].isin(jornadas_visitante)]['Tarjetas Rojas'].sum()
-            
-            # Crear DataFrame para comparativa
-            comparativa = pd.DataFrame({
-                'Métrica': ['Partidos', 'Goles', 'Tarjetas Amarillas', 'Tarjetas Rojas'],
-                'Local': [len(jornadas_local), goles_local, int(tarjetas_local_amarillas), int(tarjetas_local_rojas)],
-                'Visitante': [len(jornadas_visitante), goles_visitante, int(tarjetas_visitante_amarillas), int(tarjetas_visitante_rojas)]
-            })
-            
-            # Mostrar tabla comparativa
-            st.dataframe(comparativa, hide_index=True, use_container_width=True)
-            
-            # Gráfico de comparación
-            comparativa_melt = pd.melt(
-                comparativa, 
-                id_vars=['Métrica'], 
-                value_vars=['Local', 'Visitante'],
-                var_name='Condición', 
-                value_name='Valor'
-            )
-            
-            # Filtrar solo para goles y tarjetas
-            comparativa_filtrada = comparativa_melt[comparativa_melt['Métrica'] != 'Partidos']
-            
-            # CAMBIO: Usar colores de Penya para la comparativa Local vs Visitante
-            fig = px.bar(
-                comparativa_filtrada,
-                x='Métrica',
-                y='Valor',
-                color='Condición',
-                barmode='group',
-                title='Comparativa Local vs Visitante',
-                labels={'Valor': 'Cantidad', 'Métrica': ''},
-                color_discrete_map={'Local': PENYA_PRIMARY_COLOR, 'Visitante': PENYA_SECONDARY_COLOR}
-            )
-            
-            # Personalizar tooltip
-            fig.update_traces(
-                hovertemplate='<b>%{x}</b><br>%{data.name}: %{y}<extra></extra>'
-            )
-            
-            # Mostrar gráfico
-            st.plotly_chart(fig, use_container_width=True)
+            # Mostrar gráfico de sustituciones
+            graficar_distribucion_sustituciones(sustituciones_data)
+        else:
+            st.warning("No hay datos disponibles para el análisis de sustituciones")
     
     # Separador
     st.markdown("---")
-    
-    # Sección de sustituciones (se mantiene al final)
-    if 'sustituciones_penya' in data:
-        # Calcular distribución de sustituciones
-        sustituciones_data = analizar_distribucion_sustituciones(data['sustituciones_penya'])
-        
-        # Mostrar gráfico de sustituciones
-        st.subheader("Distribución de Sustituciones")
-        graficar_distribucion_sustituciones(sustituciones_data)
 
 if __name__ == "__main__":
     main()
