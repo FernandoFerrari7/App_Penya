@@ -317,26 +317,108 @@ def analizar_minutos_por_jornada(actas_df):
     
     return minutos_pivot
 
-def analizar_distribucion_sustituciones(sustituciones_df):
+def analizar_distribucion_sustituciones(sustituciones_df, rango_minutos=5):
     """
-    Analiza cuándo ocurren las sustituciones durante los partidos
+    Analiza la distribución de sustituciones por minuto de juego
     
     Args:
-        sustituciones_df: DataFrame con los datos de sustituciones
+        sustituciones_df: DataFrame con datos de sustituciones
+        rango_minutos: Rango de minutos para agrupar las sustituciones
         
     Returns:
-        DataFrame: DataFrame con conteo de sustituciones por rango de minutos
+        dict: Diccionario con diferentes análisis de sustituciones
     """
-    # Crear rangos de minutos para agrupar
+    import pandas as pd
+    import numpy as np
+    
+    if sustituciones_df.empty:
+        return {}
+    
+    # Crear intervalos para agrupar los minutos
     sustituciones_df = sustituciones_df.copy()
-    sustituciones_df['rango_minuto'] = pd.cut(
-        sustituciones_df['Minuto'], 
-        bins=[0, 15, 30, 45, 60, 75, 90, 105],
-        labels=['0-15', '16-30', '31-45', '46-60', '61-75', '76-90', '91+']
-    )
+    
+    # Definir dos conjuntos separados de rangos para primer y segundo tiempo
+    # Primer tiempo
+    primer_tiempo_df = sustituciones_df[sustituciones_df['Minuto'] <= 45].copy()
+    primer_tiempo_df['rango_minuto'] = '1-45'  # Asignar etiqueta directamente
+    
+    # Segundo tiempo
+    segundo_tiempo_df = sustituciones_df[sustituciones_df['Minuto'] > 45].copy()
+    
+    # Definir rangos para el segundo tiempo
+    rangos_segundo = list(range(45, 95, rango_minutos))
+    if rangos_segundo[-1] < 90 + rango_minutos:  # Asegurar que el último rango incluya posibles minutos de descuento
+        rangos_segundo.append(rangos_segundo[-1] + rango_minutos)
+    
+    # Crear etiquetas para los rangos del segundo tiempo
+    etiquetas_segundo = [f"{r}-{r+rango_minutos}" for r in rangos_segundo[:-1]]
+    
+    # Categorizar minutos del segundo tiempo
+    if not segundo_tiempo_df.empty:
+        # Asegurarse de que tengamos al menos un valor en segundo_tiempo_df
+        segundo_tiempo_df['rango_minuto'] = pd.cut(
+            segundo_tiempo_df['Minuto'], 
+            bins=rangos_segundo, 
+            labels=etiquetas_segundo, 
+            include_lowest=True, 
+            right=False
+        )
+    
+    # Combinar los dataframes de primer y segundo tiempo
+    sustituciones_df = pd.concat([primer_tiempo_df, segundo_tiempo_df])
     
     # Contar sustituciones por rango de minutos
-    sustituciones_por_minuto = sustituciones_df['rango_minuto'].value_counts().sort_index().reset_index()
-    sustituciones_por_minuto.columns = ['rango', 'cantidad']
+    dist_por_minuto = sustituciones_df['rango_minuto'].value_counts().reset_index()
+    dist_por_minuto.columns = ['rango', 'cantidad']
     
-    return sustituciones_por_minuto
+    # Ordenar por rango para que el primer tiempo aparezca primero
+    rangos_ordenados = ['1-45'] + etiquetas_segundo
+    dist_por_minuto['orden'] = dist_por_minuto['rango'].apply(lambda x: rangos_ordenados.index(x) if x in rangos_ordenados else 999)
+    dist_por_minuto = dist_por_minuto.sort_values('orden').drop('orden', axis=1)
+    
+    # Análisis de sustituciones por jornada
+    sustituciones_por_jornada = sustituciones_df.groupby('Jornada').size().reset_index(name='cantidad')
+    sustituciones_por_jornada = sustituciones_por_jornada.sort_values('Jornada')
+    
+    # Estadísticas generales de sustituciones
+    minuto_medio = sustituciones_df['Minuto'].mean()
+    
+    # Primera sustitución por jornada
+    primera_sustitucion = sustituciones_df.groupby('Jornada')['Minuto'].min().mean()
+    
+    # Última sustitución por jornada
+    ultima_sustitucion = sustituciones_df.groupby('Jornada')['Minuto'].max().mean()
+    
+    # Número medio de sustituciones por partido
+    num_medio_sustituciones = sustituciones_df.groupby('Jornada').size().mean()
+    
+    # Top sustituciones más repetidas (jugador sale - jugador entra)
+    sustituciones_df['dupla'] = sustituciones_df['jugador_sale'] + ' ⟶ ' + sustituciones_df['jugador_entra']
+    top_sustituciones = sustituciones_df['dupla'].value_counts().head(5).reset_index()
+    top_sustituciones.columns = ['Sustitución', 'Frecuencia']
+    
+    # Top jugadores más sustituidos
+    top_sustituidos = sustituciones_df['jugador_sale'].value_counts().head(5).reset_index()
+    top_sustituidos.columns = ['Jugador', 'Veces Sustituido']
+    
+    # Top jugadores con más minutos desde el banquillo
+    # Para esto necesitamos calcular los minutos jugados para cada sustitución
+    # Asumiremos que el partido dura 90 minutos a menos que tengamos datos más precisos
+    sustituciones_df['minutos_jugados'] = 90 - sustituciones_df['Minuto']
+    
+    # Agrupar por jugador que entra y sumar minutos
+    minutos_suplente = sustituciones_df.groupby('jugador_entra')['minutos_jugados'].sum().reset_index()
+    top_suplentes = minutos_suplente.sort_values('minutos_jugados', ascending=False).head(5)
+    top_suplentes.columns = ['Jugador', 'Minutos como Suplente']
+    
+    return {
+        'distribucion_minutos': dist_por_minuto,
+        'sustituciones_jornada': sustituciones_por_jornada,
+        'minuto_medio': minuto_medio,
+        'primera_sustitucion': primera_sustitucion,
+        'ultima_sustitucion': ultima_sustitucion,
+        'num_medio_sustituciones': num_medio_sustituciones,
+        'top_sustituciones': top_sustituciones,
+        'top_sustituidos': top_sustituidos,
+        'top_suplentes': top_suplentes
+    }

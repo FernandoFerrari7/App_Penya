@@ -179,38 +179,234 @@ def graficar_porcentaje_minutos_jugador(minutos_df, top_n=10):
     # Mostrar el gráfico
     st.plotly_chart(fig, use_container_width=True)
 
-def graficar_distribucion_sustituciones(sustituciones_df):
+def graficar_distribucion_sustituciones(sustituciones_data):
     """
-    Crea un histograma con la distribución de sustituciones por minuto de juego
+    Crea visualizaciones para el análisis de sustituciones
     
     Args:
-        sustituciones_df: DataFrame con sustituciones agrupadas por rango de minutos
+        sustituciones_data: Diccionario con datos de sustituciones
     """
-    if sustituciones_df.empty:
+    if not sustituciones_data:
         st.warning("No hay datos de sustituciones")
         return
     
-    # Crear gráfico de barras
-    fig = px.bar(
-        sustituciones_df,
-        x='rango',
-        y='cantidad',
-        title='Distribución de Sustituciones por Minuto',
-        labels={'rango': 'Minuto', 'cantidad': 'Número de Sustituciones'},
-        color_discrete_sequence=[PENYA_SECONDARY_COLOR]
-    )
+    # Crear pestañas para las diferentes visualizaciones
+    tab1, tab2, tab3 = st.tabs([
+        "Distribución por Minuto", 
+        "Sustituciones por Jornada",
+        "Estadísticas de Sustituciones"
+    ])
     
-    # Personalizar el gráfico
-    fig.update_layout(
-        xaxis_title='Rango de Minutos',
-        yaxis_title='Número de Sustituciones',
-        showlegend=False
-    )
+    # Pestaña 1: Distribución por Minuto
+    with tab1:
+        # Crear gráfico de barras para distribución por minuto
+        fig = px.bar(
+            sustituciones_data['distribucion_minutos'],
+            x='rango',
+            y='cantidad',
+            title='Distribución de Sustituciones por Minuto',
+            labels={'rango': 'Minuto', 'cantidad': 'Número de Sustituciones'},
+            color_discrete_sequence=[PENYA_SECONDARY_COLOR]
+        )
+        
+        # Personalizar el gráfico
+        fig.update_layout(
+            xaxis_title='Rango de Minutos',
+            yaxis_title='Número de Sustituciones',
+            showlegend=False
+        )
+        
+        # Personalizar tooltip
+        fig.update_traces(
+            hovertemplate='<b>%{x}</b><br>Sustituciones: %{y}<extra></extra>'
+        )
+        
+        # Mostrar el gráfico
+        st.plotly_chart(fig, use_container_width=True)
     
-    # Personalizar tooltip
-    fig.update_traces(
-        hovertemplate='<b>%{x}</b><br>Sustituciones: %{y}<extra></extra>'
-    )
+    # Pestaña 2: Sustituciones por Jornada
+    with tab2:
+        # Crear gráfico de líneas para sustituciones por jornada
+        fig = px.line(
+            sustituciones_data['sustituciones_jornada'],
+            x='Jornada',
+            y='cantidad',
+            title='Sustituciones por Jornada',
+            labels={'cantidad': 'Número de Sustituciones'},
+            markers=True,
+            color_discrete_sequence=[PENYA_PRIMARY_COLOR]
+        )
+        
+        # Personalizar el gráfico
+        fig.update_layout(
+            xaxis_title='Jornada',
+            yaxis_title='Número de Sustituciones',
+            showlegend=False
+        )
+        
+        # Personalizar tooltip
+        fig.update_traces(
+            hovertemplate='<b>Jornada %{x}</b><br>Sustituciones: %{y}<extra></extra>'
+        )
+        
+        # Mostrar el gráfico
+        st.plotly_chart(fig, use_container_width=True)
+        
+    # Pestaña 3: Estadísticas de Sustituciones
+    with tab3:
+        # Crear sub-pestañas para diferentes estadísticas
+        subtab1, subtab2, subtab3 = st.tabs([
+            "Sustituciones Más Repetidas",
+            "Jugadores Más Sustituidos",
+            "Minutos desde el Banquillo"
+        ])
+        
+        # Sub-pestaña 1: Sustituciones más repetidas
+        with subtab1:
+            st.subheader("Top 5 Sustituciones más Repetidas")
+            st.dataframe(
+                sustituciones_data['top_sustituciones'],
+                hide_index=True,
+                use_container_width=True
+            )
+        
+        # Sub-pestaña 2: Jugadores más sustituidos
+        with subtab2:
+            st.subheader("Top 5 Jugadores más Sustituidos")
+            st.dataframe(
+                sustituciones_data['top_sustituidos'],
+                hide_index=True,
+                use_container_width=True
+            )
+        
+        # Sub-pestaña 3: Jugadores con más minutos desde el banquillo
+        with subtab3:
+            st.subheader("Top 5 Jugadores con más Minutos desde el Banquillo")
+            st.dataframe(
+                sustituciones_data['top_suplentes'],
+                hide_index=True,
+                use_container_width=True
+            )
     
-    # Mostrar el gráfico
-    st.plotly_chart(fig, use_container_width=True)
+    # Crear una fila para las métricas de sustituciones
+    col1, col2, col3, col4 = st.columns(4)
+    
+    # Minuto medio de sustitución
+    with col1:
+        st.markdown(
+            f"""
+            <div style="
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                padding: 10px;
+                text-align: center;
+                background-color: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                height: 100%;
+            ">
+                <p style="
+                    font-size: 0.9rem;
+                    margin: 0;
+                    color: #333;
+                    font-weight: 600;
+                ">Minuto Medio por Sustitución</p>
+                <p style="
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    color: {PENYA_PRIMARY_COLOR};
+                    margin: 5px 0;
+                ">{sustituciones_data['minuto_medio']:.1f}'</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Minuto medio de primera sustitución
+    with col2:
+        st.markdown(
+            f"""
+            <div style="
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                padding: 10px;
+                text-align: center;
+                background-color: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                height: 100%;
+            ">
+                <p style="
+                    font-size: 0.9rem;
+                    margin: 0;
+                    color: #333;
+                    font-weight: 600;
+                ">Primera Sustitución</p>
+                <p style="
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    color: {PENYA_PRIMARY_COLOR};
+                    margin: 5px 0;
+                ">{sustituciones_data['primera_sustitucion']:.1f}'</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Minuto medio de última sustitución
+    with col3:
+        st.markdown(
+            f"""
+            <div style="
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                padding: 10px;
+                text-align: center;
+                background-color: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                height: 100%;
+            ">
+                <p style="
+                    font-size: 0.9rem;
+                    margin: 0;
+                    color: #333;
+                    font-weight: 600;
+                ">Última Sustitución</p>
+                <p style="
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    color: {PENYA_PRIMARY_COLOR};
+                    margin: 5px 0;
+                ">{sustituciones_data['ultima_sustitucion']:.1f}'</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Número medio de sustituciones
+    with col4:
+        st.markdown(
+            f"""
+            <div style="
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                padding: 10px;
+                text-align: center;
+                background-color: white;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                height: 100%;
+            ">
+                <p style="
+                    font-size: 0.9rem;
+                    margin: 0;
+                    color: #333;
+                    font-weight: 600;
+                ">Núm. Medio Sustituciones</p>
+                <p style="
+                    font-size: 1.8rem;
+                    font-weight: 700;
+                    color: {PENYA_PRIMARY_COLOR};
+                    margin: 5px 0;
+                ">{sustituciones_data['num_medio_sustituciones']:.1f}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )

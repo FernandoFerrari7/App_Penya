@@ -7,7 +7,7 @@ import pandas as pd
 # Importar módulos propios
 from utils.data import cargar_datos
 from utils.ui import show_sidebar
-from calculos.jugadores import calcular_estadisticas_jugador, obtener_minutos_por_jornada
+from calculos.calculo_jugadores import calcular_estadisticas_jugador, obtener_minutos_por_jornada
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR
 
 # Cargar datos

@@ -10,8 +10,8 @@ import seaborn as sns
 from utils.data import cargar_datos
 from utils.ui import show_sidebar, page_config
 from common.menu import crear_menu, mostrar_pagina_actual
-from calculos.equipo import calcular_estadisticas_generales
-from calculos.jugadores import obtener_top_goleadores, obtener_top_amonestados, obtener_jugadores_mas_minutos
+from calculos.calculo_equipo import calcular_estadisticas_generales
+from calculos.calculo_jugadores import obtener_top_goleadores, obtener_top_amonestados, obtener_jugadores_mas_minutos
 from visualizaciones.jugadores import graficar_top_goleadores, graficar_top_amonestados, graficar_minutos_jugados
 
 # Configurar la página

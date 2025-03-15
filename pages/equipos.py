@@ -9,8 +9,8 @@ import plotly.express as px
 # Importar módulos propios
 from utils.data import cargar_datos
 from utils.ui import show_sidebar
-from calculos.equipo import obtener_rivales_con_goles, analizar_tarjetas_por_jornada, analizar_tipos_goles
-from calculos.jugadores import (
+from calculos.calculo_equipo import obtener_rivales_con_goles, analizar_tarjetas_por_jornada, analizar_tipos_goles
+from calculos.calculo_jugadores import (
     analizar_goles_por_tiempo, 
     analizar_goles_por_jugador, 
     analizar_tarjetas_por_jugador,
@@ -234,16 +234,13 @@ def main():
         
         # Comprobar si hay datos de sustituciones
         if 'sustituciones_penya' in data:
-            # Calcular distribución de sustituciones
-            sustituciones_data = analizar_distribucion_sustituciones(data['sustituciones_penya'])
+            # Calcular distribución de sustituciones con un rango de 5 minutos
+            sustituciones_data = analizar_distribucion_sustituciones(data['sustituciones_penya'], rango_minutos=5)
             
-            # Mostrar gráfico de sustituciones
+            # Mostrar gráfico de sustituciones con el nuevo formato
             graficar_distribucion_sustituciones(sustituciones_data)
         else:
             st.warning("No hay datos disponibles para el análisis de sustituciones")
-    
-    # Separador
-    st.markdown("---")
 
 if __name__ == "__main__":
     main()
