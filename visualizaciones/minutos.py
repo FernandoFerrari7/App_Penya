@@ -112,7 +112,8 @@ def graficar_minutos_por_jugador_desglose(minutos_df, top_n=15, tipo_desglose='l
     
     # Personalizar el gráfico
     fig.update_layout(
-        title=titulo,
+        # CAMBIO: Quitar título
+        # title=titulo,
         yaxis={'categoryorder': 'total ascending'},
         xaxis_title='Minutos Jugados',
         yaxis_title='',
@@ -199,12 +200,13 @@ def graficar_distribucion_sustituciones(sustituciones_data):
     
     # Pestaña 1: Distribución por Minuto
     with tab1:
-        # Crear gráfico de barras para distribución por minuto
+        # Crear gráfico de barras para distribución por minuto - CAMBIO: Quitar título
         fig = px.bar(
             sustituciones_data['distribucion_minutos'],
             x='rango',
             y='cantidad',
-            title='Distribución de Sustituciones por Minuto',
+            # CAMBIO: Quitar título
+            # title='Distribución de Sustituciones por Minuto',
             labels={'rango': 'Minuto', 'cantidad': 'Número de Sustituciones'},
             color_discrete_sequence=[PENYA_SECONDARY_COLOR]
         )
@@ -226,22 +228,31 @@ def graficar_distribucion_sustituciones(sustituciones_data):
     
     # Pestaña 2: Sustituciones por Jornada
     with tab2:
-        # Crear gráfico de líneas para sustituciones por jornada
+        # Crear gráfico de líneas para sustituciones por jornada - CAMBIO: Quitar título
         fig = px.line(
             sustituciones_data['sustituciones_jornada'],
             x='Jornada',
             y='cantidad',
-            title='Sustituciones por Jornada',
+            # CAMBIO: Quitar título
+            # title='Sustituciones por Jornada',
             labels={'cantidad': 'Número de Sustituciones'},
             markers=True,
             color_discrete_sequence=[PENYA_PRIMARY_COLOR]
         )
         
-        # Personalizar el gráfico
+        # Personalizar el gráfico y forzar que las y vayan de 0 a 5 sin decimales
+        # CAMBIO: Ajustar el rango de Y para que vaya de 0 a 6 para evitar cortar los puntos superiores
+        # y usar menos espacio en blanco debajo
         fig.update_layout(
             xaxis_title='Jornada',
             yaxis_title='Número de Sustituciones',
-            showlegend=False
+            showlegend=False,
+            yaxis=dict(
+                tickmode='linear',
+                tick0=0,
+                dtick=1,
+                range=[0, 6]  # Cambio de 0-5 a 0-6 para evitar cortar puntos
+            )
         )
         
         # Personalizar tooltip
@@ -261,152 +272,108 @@ def graficar_distribucion_sustituciones(sustituciones_data):
             "Minutos desde el Banquillo"
         ])
         
-        # Sub-pestaña 1: Sustituciones más repetidas
+        # Sub-pestaña 1: Sustituciones más repetidas - CAMBIO: Quitar título
         with subtab1:
-            st.subheader("Top 5 Sustituciones más Repetidas")
+            # CAMBIO: Quitar título
+            # st.subheader("Top 5 Sustituciones más Repetidas")
             st.dataframe(
                 sustituciones_data['top_sustituciones'],
                 hide_index=True,
                 use_container_width=True
             )
         
-        # Sub-pestaña 2: Jugadores más sustituidos
+        # Sub-pestaña 2: Jugadores más sustituidos - CAMBIO: Quitar título
         with subtab2:
-            st.subheader("Top 5 Jugadores más Sustituidos")
+            # CAMBIO: Quitar título
+            # st.subheader("Top 5 Jugadores más Sustituidos")
             st.dataframe(
                 sustituciones_data['top_sustituidos'],
                 hide_index=True,
                 use_container_width=True
             )
         
-        # Sub-pestaña 3: Jugadores con más minutos desde el banquillo
+        # Sub-pestaña 3: Jugadores con más minutos desde el banquillo - CAMBIO: Quitar título
         with subtab3:
-            st.subheader("Top 5 Jugadores con más Minutos desde el Banquillo")
+            # CAMBIO: Quitar título
+            # st.subheader("Top 5 Jugadores con más Minutos desde el Banquillo")
             st.dataframe(
                 sustituciones_data['top_suplentes'],
                 hide_index=True,
                 use_container_width=True
             )
     
-    # Crear una fila para las métricas de sustituciones
+    # Crear una fila para las métricas de sustituciones - CAMBIO AQUÍ: Mismo tamaño para todas las tarjetas
     col1, col2, col3, col4 = st.columns(4)
+    
+    # Estilo CSS común para todas las tarjetas (mismo tamaño)
+    tarjeta_estilo = """
+        <div style="
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            height: 130px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        ">
+            <p style="
+                font-size: 0.9rem;
+                margin: 0;
+                color: #333;
+                font-weight: 600;
+            ">{titulo}</p>
+            <p style="
+                font-size: 1.8rem;
+                font-weight: 700;
+                color: {color};
+                margin: 5px 0;
+            ">{valor}</p>
+        </div>
+    """
     
     # Minuto medio de sustitución
     with col1:
         st.markdown(
-            f"""
-            <div style="
-                border-radius: 4px;
-                border: 1px solid #ddd;
-                padding: 10px;
-                text-align: center;
-                background-color: white;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                height: 100%;
-            ">
-                <p style="
-                    font-size: 0.9rem;
-                    margin: 0;
-                    color: #333;
-                    font-weight: 600;
-                ">Minuto Medio por Sustitución</p>
-                <p style="
-                    font-size: 1.8rem;
-                    font-weight: 700;
-                    color: {PENYA_PRIMARY_COLOR};
-                    margin: 5px 0;
-                ">{sustituciones_data['minuto_medio']:.1f}'</p>
-            </div>
-            """,
+            tarjeta_estilo.format(
+                titulo="Minuto Medio por<br>Sustitución",
+                valor=f"{sustituciones_data['minuto_medio']:.1f}'",
+                color=PENYA_PRIMARY_COLOR
+            ),
             unsafe_allow_html=True
         )
     
     # Minuto medio de primera sustitución
     with col2:
         st.markdown(
-            f"""
-            <div style="
-                border-radius: 4px;
-                border: 1px solid #ddd;
-                padding: 10px;
-                text-align: center;
-                background-color: white;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                height: 100%;
-            ">
-                <p style="
-                    font-size: 0.9rem;
-                    margin: 0;
-                    color: #333;
-                    font-weight: 600;
-                ">Primera Sustitución</p>
-                <p style="
-                    font-size: 1.8rem;
-                    font-weight: 700;
-                    color: {PENYA_PRIMARY_COLOR};
-                    margin: 5px 0;
-                ">{sustituciones_data['primera_sustitucion']:.1f}'</p>
-            </div>
-            """,
+            tarjeta_estilo.format(
+                titulo="Primera Sustitución",
+                valor=f"{sustituciones_data['primera_sustitucion']:.1f}'",
+                color=PENYA_PRIMARY_COLOR
+            ),
             unsafe_allow_html=True
         )
     
     # Minuto medio de última sustitución
     with col3:
         st.markdown(
-            f"""
-            <div style="
-                border-radius: 4px;
-                border: 1px solid #ddd;
-                padding: 10px;
-                text-align: center;
-                background-color: white;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                height: 100%;
-            ">
-                <p style="
-                    font-size: 0.9rem;
-                    margin: 0;
-                    color: #333;
-                    font-weight: 600;
-                ">Última Sustitución</p>
-                <p style="
-                    font-size: 1.8rem;
-                    font-weight: 700;
-                    color: {PENYA_PRIMARY_COLOR};
-                    margin: 5px 0;
-                ">{sustituciones_data['ultima_sustitucion']:.1f}'</p>
-            </div>
-            """,
+            tarjeta_estilo.format(
+                titulo="Última Sustitución",
+                valor=f"{sustituciones_data['ultima_sustitucion']:.1f}'",
+                color=PENYA_PRIMARY_COLOR
+            ),
             unsafe_allow_html=True
         )
     
     # Número medio de sustituciones
     with col4:
         st.markdown(
-            f"""
-            <div style="
-                border-radius: 4px;
-                border: 1px solid #ddd;
-                padding: 10px;
-                text-align: center;
-                background-color: white;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                height: 100%;
-            ">
-                <p style="
-                    font-size: 0.9rem;
-                    margin: 0;
-                    color: #333;
-                    font-weight: 600;
-                ">Núm. Medio Sustituciones</p>
-                <p style="
-                    font-size: 1.8rem;
-                    font-weight: 700;
-                    color: {PENYA_PRIMARY_COLOR};
-                    margin: 5px 0;
-                ">{sustituciones_data['num_medio_sustituciones']:.1f}</p>
-            </div>
-            """,
+            tarjeta_estilo.format(
+                titulo="Núm. Medio<br>Sustituciones",
+                valor=f"{sustituciones_data['num_medio_sustituciones']:.1f}",
+                color=PENYA_PRIMARY_COLOR
+            ),
             unsafe_allow_html=True
         )

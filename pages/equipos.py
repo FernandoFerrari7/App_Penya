@@ -1,10 +1,11 @@
 """
-Página de análisis de equipos y partidos
+Página de análisis de equipos y partidos - VERSIÓN ACTUALIZADA
 """
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
 
 # Importar módulos propios
 from utils.data import cargar_datos
@@ -85,8 +86,8 @@ def mostrar_tarjeta_metrica_compacta(titulo, valor, valor_referencia=None, color
 def main():
     """Función principal que muestra el análisis de equipos"""
     
-    # Título principal
-    st.title("Análisis de Equipo")
+    # CAMBIO: Quitar el título principal para ahorrar espacio
+    # st.title("Análisis de Equipo")
     
     # Mostrar barra lateral
     show_sidebar()
@@ -159,6 +160,9 @@ def main():
     
     # Sección de Visualizaciones de Goles
     with col_goles:
+        # CAMBIO: Agregar título "Goles"
+        st.subheader("Goles")
+        
         # Tabs para diferentes visualizaciones de goles en el orden solicitado
         gol_tab1, gol_tab2, gol_tab3 = st.tabs([
             "Goles por Jugador",
@@ -167,22 +171,94 @@ def main():
         ])
         
         with gol_tab1:
-            # Goles por jugador
+            # Goles por jugador - CAMBIO: Quitar título del gráfico
             goles_jugador = analizar_goles_por_jugador(data['goles_penya'], data['actas_penya'])
-            graficar_goles_por_jugador(goles_jugador)
+            fig = px.bar(
+                goles_jugador,
+                y='jugador',
+                x='goles',
+                orientation='h',
+                labels={'jugador': 'Jugador', 'goles': 'Goles'},
+                color_discrete_sequence=[PENYA_PRIMARY_COLOR]
+            )
+            
+            fig.update_layout(
+                yaxis={'categoryorder': 'total ascending'},
+                xaxis_title='Goles',
+                yaxis_title='',
+                showlegend=False,
+                height=max(400, len(goles_jugador) * 25)
+            )
+            
+            fig.update_traces(
+                hovertemplate='Goles: %{x}<extra></extra>'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
         with gol_tab2:
-            # Distribución de goles por minuto
+            # Distribución de goles por minuto - CAMBIO: Quitar título del gráfico y usar solo valores enteros en eje Y
             goles_tiempo = analizar_goles_por_tiempo(data['goles_penya'])
-            graficar_goles_por_tiempo(goles_tiempo)
+            df = goles_tiempo.reset_index()
+            df.columns = ['Rango', 'Goles']
+            
+            fig = px.bar(
+                df,
+                x='Rango',
+                y='Goles',
+                labels={'Rango': 'Rango de Minutos', 'Goles': 'Número de Goles'},
+                color_discrete_sequence=[PENYA_PRIMARY_COLOR]
+            )
+            
+            fig.update_layout(
+                xaxis_title='Rango de Minutos',
+                yaxis_title='Número de Goles',
+                showlegend=False,
+                # CAMBIO: Forzar valores enteros en el eje Y
+                yaxis=dict(
+                    tickmode='linear',
+                    tick0=0,
+                    dtick=1
+                )
+            )
+            
+            fig.update_traces(
+                hovertemplate='<b>%{x}</b><br>Goles: %{y}<extra></extra>'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
         with gol_tab3:
-            # Tipos de goles
+            # Tipos de goles - CAMBIO: Quitar título del gráfico y referencias (ya están en el gráfico)
             tipos_goles = analizar_tipos_goles(data['goles_penya'])
-            graficar_tipos_goles(tipos_goles)
+            df = tipos_goles.reset_index()
+            df.columns = ['Tipo', 'Cantidad']
+            
+            fig = px.pie(
+                df,
+                values='Cantidad',
+                names='Tipo',
+                color_discrete_sequence=[PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, "#555555", "#777777"]
+            )
+            
+            fig.update_layout(
+                showlegend=False  # CAMBIO: Quitar leyenda ya que la información ya está en las etiquetas
+            )
+            
+            fig.update_traces(
+                textposition='inside',
+                textinfo='percent+label',
+                hole=0.4,
+                hovertemplate='<b>%{label}</b><br>Cantidad: %{value}<br>(%{percent})<extra></extra>'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
     
     # Sección de Visualizaciones de Tarjetas
     with col_tarjetas:
+        # CAMBIO: Agregar título "Tarjetas"
+        st.subheader("Tarjetas")
+        
         # Tabs para diferentes visualizaciones de tarjetas en el orden solicitado
         tarjeta_tab1, tarjeta_tab2 = st.tabs([
             "Tarjetas por Jugador",
@@ -190,24 +266,102 @@ def main():
         ])
         
         with tarjeta_tab1:
-            # Análisis de tarjetas por jugador (todos los jugadores)
+            # Análisis de tarjetas por jugador (todos los jugadores) - CAMBIO: Quitar título y invertir orden de referencias
             tarjetas_jugador = analizar_tarjetas_por_jugador(data['actas_penya'])
-            graficar_tarjetas_por_jugador(tarjetas_jugador, top_n=None)
+            
+            # Crear gráfico de barras apiladas con orden invertido de las leyendas
+            fig = go.Figure()
+            
+            # CAMBIO: Invertir orden - Primero rojas, luego amarillas
+            fig.add_trace(go.Bar(
+                y=tarjetas_jugador['jugador'],
+                x=tarjetas_jugador['Tarjetas Rojas'],
+                name='Rojas',
+                orientation='h',
+                marker=dict(color='#FF4136')  # Color rojo
+            ))
+            
+            fig.add_trace(go.Bar(
+                y=tarjetas_jugador['jugador'],
+                x=tarjetas_jugador['Tarjetas Amarillas'],
+                name='Amarillas',
+                orientation='h',
+                marker=dict(color='#FFD700')  # Color amarillo
+            ))
+            
+            fig.update_layout(
+                xaxis_title='Número de Tarjetas',
+                yaxis_title='',
+                barmode='stack',
+                yaxis={'categoryorder': 'total ascending'},
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                height=max(400, len(tarjetas_jugador) * 25)
+            )
+            
+            fig.update_traces(
+                hovertemplate='Tarjetas: %{x}<extra></extra>'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
         with tarjeta_tab2:
-            # Análisis de tarjetas por jornada
+            # Análisis de tarjetas por jornada - CAMBIO: Quitar título
             tarjetas_jornada = analizar_tarjetas_por_jornada(data['actas_penya'])
-            graficar_tarjetas_por_jornada(tarjetas_jornada)
+            
+            fig = go.Figure()
+            
+            fig.add_trace(go.Scatter(
+                x=tarjetas_jornada['jornada'],
+                y=tarjetas_jornada['Tarjetas Amarillas'],
+                mode='lines+markers',
+                name='Amarillas',
+                line=dict(color='#FFD700', width=2),
+                marker=dict(size=8)
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=tarjetas_jornada['jornada'],
+                y=tarjetas_jornada['Tarjetas Rojas'],
+                mode='lines+markers',
+                name='Rojas',
+                line=dict(color='#FF4136', width=2),
+                marker=dict(size=8)
+            ))
+            
+            fig.update_layout(
+                xaxis_title='Jornada',
+                yaxis_title='Número de Tarjetas',
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                )
+            )
+            
+            fig.update_traces(
+                hovertemplate='<b>Jornada %{x}</b><br>Tarjetas: %{y}<extra></extra>'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
     
     # Separador
     st.markdown("---")
     
-    # CAMBIO: Colocar en la misma fila "Análisis de Minutos por Jugador" y "Distribución de Sustituciones"
+    # CAMBIO: Colocar en la misma fila "Minutos por Jugador" y "Distribución de Sustituciones"
     col_minutos, col_sustituciones = st.columns(2)
     
     # Sección de Análisis de Minutos (columna izquierda)
     with col_minutos:
-        st.subheader("Análisis de Minutos por Jugador")
+        # CAMBIO: Actualizar título de "Análisis de Minutos por Jugador" a "Minutos por Jugador"
+        st.subheader("Minutos por Jugador")
         
         # Calcular datos de minutos
         minutos_jugador = analizar_minutos_por_jugador(data['actas_penya'])
@@ -219,14 +373,88 @@ def main():
         ])
         
         with minutos_tab1:
-            # Desglose local vs visitante (CAMBIO: usar colores de Penya y mostrar todos los jugadores)
-            graficar_minutos_por_jugador_desglose(minutos_jugador, top_n=None, tipo_desglose='local_visitante', 
-                                                  color_izquierda=PENYA_PRIMARY_COLOR, color_derecha=PENYA_SECONDARY_COLOR)
+            # CAMBIO: Quitar título del gráfico e invertir barras pero manteniendo orden de las referencias (Local, Visitante)
+            # Desglose local vs visitante
+            df = minutos_jugador.copy()
+            
+            # Crear figura
+            fig = go.Figure()
+            
+            # CAMBIO: Primero local (naranja), luego visitante, pero manteniendo mismo orden de referencias
+            fig.add_trace(go.Bar(
+                y=df['jugador'],
+                x=df['minutos_local'],
+                name='Local',
+                orientation='h',
+                marker=dict(color=PENYA_PRIMARY_COLOR)
+            ))
+            
+            fig.add_trace(go.Bar(
+                y=df['jugador'],
+                x=df['minutos_visitante'],
+                name='Visitante',
+                orientation='h',
+                marker=dict(color='#36A2EB' if PENYA_SECONDARY_COLOR is None else PENYA_SECONDARY_COLOR)
+            ))
+            
+            fig.update_layout(
+                yaxis={'categoryorder': 'total ascending'},
+                xaxis_title='Minutos Jugados',
+                yaxis_title='',
+                barmode='stack',
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                height=600
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
         
         with minutos_tab2:
-            # Desglose titular vs suplente (CAMBIO: usar colores de Penya y mostrar todos los jugadores)
-            graficar_minutos_por_jugador_desglose(minutos_jugador, top_n=None, tipo_desglose='titular_suplente',
-                                                  color_izquierda=PENYA_PRIMARY_COLOR, color_derecha=PENYA_SECONDARY_COLOR)
+            # CAMBIO: Quitar título del gráfico e invertir barras pero manteniendo orden de las referencias (Titular, Suplente)
+            # Desglose titular vs suplente
+            df = minutos_jugador.copy()
+            
+            # Crear figura
+            fig = go.Figure()
+            
+            # CAMBIO: Primero titular (naranja), luego suplente, pero manteniendo mismo orden de referencias
+            fig.add_trace(go.Bar(
+                y=df['jugador'],
+                x=df['minutos_titular'],
+                name='Como Titular',
+                orientation='h',
+                marker=dict(color=PENYA_PRIMARY_COLOR)
+            ))
+            
+            fig.add_trace(go.Bar(
+                y=df['jugador'],
+                x=df['minutos_suplente'],
+                name='Como Suplente',
+                orientation='h',
+                marker=dict(color='#888888' if PENYA_SECONDARY_COLOR is None else PENYA_SECONDARY_COLOR)
+            ))
+            
+            fig.update_layout(
+                yaxis={'categoryorder': 'total ascending'},
+                xaxis_title='Minutos Jugados',
+                yaxis_title='',
+                barmode='stack',
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                height=600
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
     
     # Sección de Distribución de Sustituciones (columna derecha)
     with col_sustituciones:
@@ -237,7 +465,7 @@ def main():
             # Calcular distribución de sustituciones con un rango de 5 minutos
             sustituciones_data = analizar_distribucion_sustituciones(data['sustituciones_penya'], rango_minutos=5)
             
-            # Mostrar gráfico de sustituciones con el nuevo formato
+            # Pasar el trabajo al archivo minutos.py (función actualizada)
             graficar_distribucion_sustituciones(sustituciones_data)
         else:
             st.warning("No hay datos disponibles para el análisis de sustituciones")
