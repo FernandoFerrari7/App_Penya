@@ -78,7 +78,7 @@ def obtener_minutos_por_jornada(actas_df, jugador_nombre):
     
     return minutos_por_jornada
 
-def obtener_top_goleadores(actas_df, top_n=10):
+def obtener_top_goleadores(actas_df, top_n=5):
     """
     Obtiene los jugadores con más goles
     
@@ -101,7 +101,7 @@ def obtener_top_goleadores(actas_df, top_n=10):
     # Limitar al número especificado
     return goles_por_jugador.head(top_n)
 
-def obtener_top_amonestados(actas_df, top_n=10):
+def obtener_top_amonestados(actas_df, top_n=5):
     """
     Obtiene los jugadores con más tarjetas
     
@@ -133,7 +133,7 @@ def obtener_top_amonestados(actas_df, top_n=10):
     # Limitar al número especificado
     return tarjetas_por_jugador.head(top_n)
 
-def obtener_jugadores_mas_minutos(actas_df, top_n=10):
+def obtener_jugadores_mas_minutos(actas_df, top_n=5):
     """
     Obtiene los jugadores con más minutos jugados
     

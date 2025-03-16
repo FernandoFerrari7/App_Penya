@@ -63,4 +63,6 @@ def generarLogin():
                     st.rerun()
                 else:
                     # Si el usuario es invalido, mostramos el mensaje de error
-                    st.error("Usuario o clave inválidos",icon=":material/gpp_maybe:")                    
+                    st.error("Usuario o clave inválidos",icon=":material/gpp_maybe:")        
+
+                                

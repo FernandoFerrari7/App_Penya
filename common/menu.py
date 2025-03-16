@@ -10,11 +10,11 @@ def crear_menu():
     Returns:
         str: La opción seleccionada por el usuario
     """
-    # Opciones del menú con iconos
+    # Opciones del menú con iconos (orden cambiado y nuevos iconos)
     opciones = [
         {"nombre": "Inicio", "icono": "📌"},
-        {"nombre": "Jugadores", "icono": "👤"},
-        {"nombre": "Equipo", "icono": "⚽"}
+        {"nombre": "Equipo", "icono": "🧍🧍"},
+        {"nombre": "Jugadores", "icono": "🧍"}
     ]
     
     # Crear un contenedor para el menú
