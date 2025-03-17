@@ -10,43 +10,42 @@ def crear_menu():
     Returns:
         str: La opción seleccionada por el usuario
     """
-    # Opciones del menú con iconos (orden cambiado y nuevos iconos)
+    # Opciones del menú con iconos más cercanos al texto
     opciones = [
         {"nombre": "Inicio", "icono": "📌"},
         {"nombre": "Equipo", "icono": "🧍🧍"},
         {"nombre": "Jugadores", "icono": "🧍"}
     ]
     
-    # Crear un contenedor para el menú
-    menu_container = st.container()
+    # Crear columnas para las opciones y una extra para el logo del Penya
+    cols = st.columns(len(opciones) + 1)  # +1 para la columna del logo
     
-    with menu_container:
-        # Crear columnas para cada opción del menú
-        cols = st.columns(len(opciones))
-        
-        # Inicializar la selección actual
-        if 'pagina_actual' not in st.session_state:
-            st.session_state.pagina_actual = "Inicio"
-        
-        # Crear botones para cada opción
-        for i, opcion in enumerate(opciones):
-            with cols[i]:
-                # Estilo diferente para la página actual
-                if st.session_state.pagina_actual == opcion["nombre"]:
-                    st.button(
-                        f"{opcion['icono']} {opcion['nombre']}",
-                        key=f"menu_{opcion['nombre']}",
-                        use_container_width=True,
-                        disabled=True
-                    )
-                else:
-                    if st.button(
-                        f"{opcion['icono']} {opcion['nombre']}",
-                        key=f"menu_{opcion['nombre']}",
-                        use_container_width=True
-                    ):
-                        st.session_state.pagina_actual = opcion["nombre"]
-                        st.rerun()
+    # Inicializar la selección actual
+    if 'pagina_actual' not in st.session_state:
+        st.session_state.pagina_actual = "Inicio"
+    
+    # Crear botones para cada opción
+    for i, opcion in enumerate(opciones):
+        with cols[i]:
+            if st.session_state.pagina_actual == opcion["nombre"]:
+                st.button(
+                    f"{opcion['icono']}{opcion['nombre']}",  # Icono pegado al texto
+                    key=f"menu_{opcion['nombre']}",
+                    use_container_width=True,
+                    disabled=True
+                )
+            else:
+                if st.button(
+                    f"{opcion['icono']}{opcion['nombre']}",  # Icono pegado al texto
+                    key=f"menu_{opcion['nombre']}",
+                    use_container_width=True
+                ):
+                    st.session_state.pagina_actual = opcion["nombre"]
+                    st.rerun()
+    
+    # Colocar el logo del Penya a la derecha
+    with cols[-1]:  
+        st.image("assets/logo_penya.png", width=50)  # Ajusta el tamaño si es necesario
     
     # Separador después del menú
     st.markdown("---")

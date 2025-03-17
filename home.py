@@ -49,7 +49,7 @@ def main():
         """, unsafe_allow_html=True)
     
     with col_logo_der:
-        # Logo Penya a la derecha
+        st.markdown("<br>", unsafe_allow_html=True)  # Agrega un espacio arriba para bajarlo levemente
         st.image("assets/logo_penya.png", width=120)
     
     # Espacio para separar el título del contenido

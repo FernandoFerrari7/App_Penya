@@ -133,7 +133,7 @@ def graficar_minutos_jugados_home(minutos_df, top_n=5):
         orientation='h',
         title=f'Top {top_n} Jugadores con Más Minutos',  # Título reflejando top_n exacto
         labels={'jugador': 'Jugador', 'minutos_jugados': 'Minutos Jugados'},
-        color_discrete_sequence=[PENYA_PRIMARY_COLOR]
+        color_discrete_sequence=["#000000"]  # Color negro para las barras
     )
     
     # Personalizar el gráfico
