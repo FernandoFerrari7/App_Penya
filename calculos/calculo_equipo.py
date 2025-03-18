@@ -4,6 +4,28 @@ Cálculos relacionados con estadísticas del equipo
 import pandas as pd
 import numpy as np
 
+def contar_partidos_jugados(partidos_df):
+    """
+    Cuenta los partidos jugados, verificando que tengan un enlace de acta válido
+    
+    Args:
+        partidos_df: DataFrame con datos de partidos
+        
+    Returns:
+        int: Número de partidos jugados
+    """
+    # Filtrar partidos de la Penya (local o visitante)
+    partidos_penya = partidos_df[
+        (partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)) | 
+        (partidos_df['equipo_visitante'].str.contains('PENYA INDEPENDENT', na=False))
+    ]
+    
+    # Contar solo partidos con enlace de acta (partidos realmente jugados)
+    partidos_jugados = partidos_penya[partidos_penya['link_acta'].notna() & 
+                                      (partidos_penya['link_acta'] != '')].shape[0]
+    
+    return partidos_jugados
+
 def calcular_estadisticas_generales(actas_df, goles_df, partidos_df):
     """
     Calcula estadísticas generales del equipo
@@ -16,10 +38,8 @@ def calcular_estadisticas_generales(actas_df, goles_df, partidos_df):
     Returns:
         dict: Diccionario con estadísticas generales
     """
-    # Estadísticas básicas
-    # Contamos los partidos como la cantidad de jornadas únicas donde aparece la Penya
-    jornadas_unicas = actas_df['jornada'].unique()
-    total_partidos = len(jornadas_unicas)
+    # Usar la función común para contar partidos jugados
+    total_partidos = contar_partidos_jugados(partidos_df)
     
     total_goles = len(goles_df)
     total_tarjetas_amarillas = actas_df['Tarjetas Amarillas'].sum()
@@ -247,13 +267,14 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     partidos_df = partidos_df.copy()
     partidos_df['es_local'] = partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)
     
-    # Filtrar partidos de la Penya
+    # Usar la función común para contar partidos jugados
+    partidos_jugados = contar_partidos_jugados(partidos_df)
+    
+    # Crear listas de jornadas por condición
     partidos_penya = partidos_df[
         (partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)) | 
         (partidos_df['equipo_visitante'].str.contains('PENYA INDEPENDENT', na=False))
     ]
-    
-    # Crear listas de jornadas por condición
     jornadas_local = partidos_penya[partidos_penya['es_local']]['jornada'].tolist()
     jornadas_visitante = partidos_penya[~partidos_penya['es_local']]['jornada'].tolist()
     
@@ -274,7 +295,6 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     
     # Calcular número de jugadores y partidos
     num_jugadores = actas_df['jugador'].nunique()
-    partidos_jugados = len(partidos_penya)
     
     # Calcular valores de referencia (medias de la liga)
     # Calculamos la media de goles de todos los otros equipos
