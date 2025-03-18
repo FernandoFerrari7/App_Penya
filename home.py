@@ -8,9 +8,9 @@ import seaborn as sns
 
 # Importar módulos propios
 from utils.data import cargar_datos
-from utils.ui import show_sidebar, page_config
+from utils.ui import page_config  # Solo importar page_config
 from common.menu import crear_menu, mostrar_pagina_actual
-from calculos.calculo_equipo import calcular_estadisticas_generales
+from calculos.calculo_equipo import calcular_estadisticas_generales, calcular_metricas_avanzadas, calcular_goles_contra
 from calculos.calculo_jugadores import obtener_top_goleadores, obtener_top_amonestados, obtener_jugadores_mas_minutos
 
 # Importar funciones de visualización especiales para la página Home
@@ -29,28 +29,22 @@ data = cargar_datos()
 def main():
     """Función principal que muestra el dashboard"""
     
-    # Mostrar barra lateral
-    show_sidebar()
+    # SOLUCIÓN EXTREMADAMENTE SIMPLE: SÓLO 3 COLUMNAS CON MENOS ESPACIO
+    c1, c2, c3 = st.columns([2, 3, 2], gap="small")
     
-    # Encabezado con logos y título
-    col_logo_izq, col_titulo, col_logo_der = st.columns([1, 3, 1])
+    with c1:
+        # Logo de Penya mucho más cerca
+        st.image("assets/logo_penya.png", width=110) 
     
-    with col_logo_izq:
-        # Logo FFIB a la izquierda (tamaño aumentado)
-        st.image("assets/logo_ffib.png", width=150)
+    with c2:
+        # Título con mucho menos espacio
+        st.write("# Penya Independent")
+        st.write("#### Análisis de Rendimiento")
     
-    with col_titulo:
-        # Diseño del título principal con subtítulo
-        st.markdown("""
-        <div style="text-align: center;">
-            <h1 style="margin-bottom: 0px; padding-bottom: 0px;">Penya Independent</h1>
-            <h4 style="margin-top: 0px; color: #636363; font-weight: 700;">Análisis de Rendimiento</h4>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col_logo_der:
-        st.markdown("<br>", unsafe_allow_html=True)  # Agrega un espacio arriba para bajarlo levemente
-        st.image("assets/logo_penya.png", width=120)
+    with c3:
+        # Logo FFIB
+        st.write("")  # Añadir un único espacio para alinearlo
+        st.image("assets/logo_ffib.png", width=140)
     
     # Espacio para separar el título del contenido
     st.markdown("---")
@@ -62,8 +56,28 @@ def main():
         data['partidos_penya']
     )
     
-    # Goles en contra - mantener el valor actual hasta implementar el cálculo correcto
-    goles_recibidos = 32
+    # Calcular goles en contra de manera dinámica
+    try:
+        # Intentar calcular con la función metricas_avanzadas
+        metricas_avanzadas = calcular_metricas_avanzadas(
+            data['partidos_penya'], 
+            data['goles_penya'], 
+            data['actas_penya'], 
+            data['actas']
+        )
+        goles_recibidos = metricas_avanzadas['goles'][1]['valor']
+    except Exception as e:
+        # Si falla, intentar directamente con calcular_goles_contra
+        try:
+            goles_recibidos = calcular_goles_contra(
+                data['actas_penya'], 
+                data['partidos_penya'], 
+                data['actas']
+            )
+        except Exception as e2:
+            # Si todo falla, mostrar error
+            st.error(f"Error al calcular goles en contra: {e2}")
+            goles_recibidos = 0
     
     # Mostrar métricas de resumen en una sola fila con 5 columnas
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -103,7 +117,7 @@ def main():
     col1, col2 = st.columns(2)
     
     with col1:
-        # Top 5 jugadores con más minutos
+        # Top 5 jugadores con más minutos (barras negras)
         top_minutos = obtener_jugadores_mas_minutos(data['actas_penya'], top_n=5)
         graficar_minutos_jugados_home(top_minutos)
     
@@ -133,3 +147,4 @@ if __name__ == "__main__":
         main()
     else:
         mostrar_pagina_actual()
+

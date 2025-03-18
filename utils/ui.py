@@ -19,13 +19,9 @@ def page_config():
         )
         st.session_state.page_config_done = True
 
+# Función vacía que no hace nada
 def show_sidebar():
     """
-    Muestra elementos comunes en la barra lateral
+    Esta función ya no muestra elementos en la barra lateral
     """
-    st.sidebar.title("Sobre")
-    st.sidebar.info(
-        """
-        Este dashboard presenta estadísticas y análisis del equipo Penya Independent.
-        """
-    )
+    pass

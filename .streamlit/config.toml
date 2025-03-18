@@ -1,3 +1,13 @@
-[ui]
-hideTopBar = false  # Mantener la barra superior (para recargar app, etc.)
-hideSidebarNav = true  # Ocultar el menú de navegación lateral
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#FF8C00"  # Color primario de Penya (naranja)
+secondaryBackgroundColor = "#F0F2F6"  # Color de fondo secundario
+
+[client]
+# Estas opciones reemplazan a las antiguas opciones de ui
+showSidebarNavigation = false
+toolbarMode = "minimal"
+
+

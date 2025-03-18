@@ -6,9 +6,12 @@ import pandas as pd
 
 # Importar módulos propios
 from utils.data import cargar_datos
-from utils.ui import show_sidebar
+from utils.ui import page_config  # Solo importar page_config, no show_sidebar
 from calculos.calculo_jugadores import calcular_estadisticas_jugador
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, COLOR_TARJETAS_AMARILLAS, COLOR_TARJETAS_ROJAS
+
+# Configurar la página
+page_config()
 
 # Cargar datos
 data = cargar_datos()
@@ -153,8 +156,7 @@ def mostrar_tarjeta_metrica_compacta(titulo, valor, color_valor="#FF8C00"):
 def main():
     """Función principal que muestra el análisis de jugadores"""
     
-    # Mostrar barra lateral
-    show_sidebar()
+    # Eliminada la llamada a show_sidebar
     
     # Obtener lista de jugadores de Penya Independent
     jugadores = data['actas_penya']['jugador'].unique()

@@ -1,5 +1,5 @@
 """
-Página de análisis de equipos y partidos - VERSIÓN ACTUALIZADA
+Página de análisis de equipos y partidos
 """
 import streamlit as st
 import pandas as pd
@@ -9,8 +9,8 @@ import plotly.graph_objects as go
 
 # Importar módulos propios
 from utils.data import cargar_datos
-from utils.ui import show_sidebar
-from calculos.calculo_equipo import obtener_rivales_con_goles, analizar_tarjetas_por_jornada, analizar_tipos_goles
+from utils.ui import page_config  # Solo importar page_config
+from calculos.calculo_equipo import obtener_rivales_con_goles, analizar_tarjetas_por_jornada, analizar_tipos_goles, calcular_metricas_avanzadas
 from calculos.calculo_jugadores import (
     analizar_goles_por_tiempo, 
     analizar_goles_por_jugador, 
@@ -30,6 +30,9 @@ from visualizaciones.minutos import (
     graficar_distribucion_sustituciones
 )
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR
+
+# Configurar la página
+page_config()
 
 # Cargar datos
 data = cargar_datos()
@@ -89,60 +92,120 @@ def main():
     # CAMBIO: Quitar el título principal para ahorrar espacio
     # st.title("Análisis de Equipo")
     
-    # Mostrar barra lateral
-    show_sidebar()
+    # Eliminada la llamada a show_sidebar
     
-    # Definir las métricas en el orden solicitado
-    metricas = [
-        {
-            'titulo': 'Partidos Jugados',
-            'valor': 19,
-            'referencia': None,
-            'color': PENYA_SECONDARY_COLOR  # Negro
-        },
-        {
-            'titulo': 'Num. Jugadores',
-            'valor': 25,
-            'referencia': 27.7,
-            'color': PENYA_SECONDARY_COLOR  # Negro
-        },
-        {
-            'titulo': 'Goles a favor',
-            'valor': 18,
-            'referencia': 28,
-            'color': '#FF8C00'  # Se determinará dinámicamente
-        },
-        {
-            'titulo': 'Goles en contra',
-            'valor': 32,
-            'referencia': 30,  # Media de la liga
-            'color': '#FF4136'  # Se determinará dinámicamente
-        },
-        {
-            'titulo': 'Tarjetas Amarillas',
-            'valor': 33,
-            'referencia': 42,
-            'color': '#FFD700'  # Amarillo
-        },
-        {
-            'titulo': 'Tarjetas Amarillas Rival',
-            'valor': 40,
-            'referencia': 45,  # Media de la liga
-            'color': '#FFD700'  # Amarillo
-        },
-        {
-            'titulo': 'Tarjetas Rojas',
-            'valor': 2,
-            'referencia': 1.6,
-            'color': '#FF4136'  # Rojo
-        },
-        {
-            'titulo': 'Tarjetas Rojas Rival',
-            'valor': 1,
-            'referencia': 1.8,  # Media de la liga
-            'color': '#FF4136'  # Rojo
-        }
-    ]
+    # Calcular métricas avanzadas
+    try:
+        metricas_avanzadas = calcular_metricas_avanzadas(
+            data['partidos_penya'], 
+            data['goles_penya'], 
+            data['actas_penya'], 
+            data['actas']
+        )
+        
+        # Actualizar métricas con datos calculados dinámicamente
+        metricas = [
+            {
+                'titulo': 'Partidos Jugados',
+                'valor': metricas_avanzadas['general'][1]['valor'],
+                'referencia': None,
+                'color': PENYA_SECONDARY_COLOR  # Negro
+            },
+            {
+                'titulo': 'Num. Jugadores',
+                'valor': metricas_avanzadas['general'][0]['valor'],
+                'referencia': metricas_avanzadas['general'][0]['referencia'],
+                'color': PENYA_SECONDARY_COLOR  # Negro
+            },
+            {
+                'titulo': 'Goles a favor',
+                'valor': metricas_avanzadas['goles'][0]['valor'],
+                'referencia': metricas_avanzadas['goles'][0]['referencia'],
+                'color': '#FF8C00'  # Se determinará dinámicamente
+            },
+            {
+                'titulo': 'Goles en contra',
+                'valor': metricas_avanzadas['goles'][1]['valor'],
+                'referencia': 30,  # Media de la liga
+                'color': '#FF4136'  # Se determinará dinámicamente
+            },
+            {
+                'titulo': 'Tarjetas Amarillas',
+                'valor': metricas_avanzadas['tarjetas'][0]['valor'],
+                'referencia': metricas_avanzadas['tarjetas'][0]['referencia'],
+                'color': '#FFD700'  # Amarillo
+            },
+            {
+                'titulo': 'TA Rival',
+                'valor': metricas_avanzadas['tarjetas'][1]['valor'],
+                'referencia': 45,  # Media de la liga
+                'color': '#FFD700'  # Amarillo
+            },
+            {
+                'titulo': 'Tarjetas Rojas',
+                'valor': metricas_avanzadas['tarjetas'][2]['valor'],
+                'referencia': metricas_avanzadas['tarjetas'][2]['referencia'],
+                'color': '#FF4136'  # Rojo
+            },
+            {
+                'titulo': 'TR Rival',
+                'valor': metricas_avanzadas['tarjetas'][3]['valor'],
+                'referencia': 1.8,  # Media de la liga
+                'color': '#FF4136'  # Rojo
+            }
+        ]
+    except:
+        # Si no se pueden calcular, usar valores predeterminados
+        metricas = [
+            {
+                'titulo': 'Partidos Jugados',
+                'valor': 19,
+                'referencia': None,
+                'color': PENYA_SECONDARY_COLOR  # Negro
+            },
+            {
+                'titulo': 'Num. Jugadores',
+                'valor': 25,
+                'referencia': 27.7,
+                'color': PENYA_SECONDARY_COLOR  # Negro
+            },
+            {
+                'titulo': 'Goles a favor',
+                'valor': 18,
+                'referencia': 28,
+                'color': '#FF8C00'  # Se determinará dinámicamente
+            },
+            {
+                'titulo': 'Goles en contra',
+                'valor': 32,
+                'referencia': 30,  # Media de la liga
+                'color': '#FF4136'  # Se determinará dinámicamente
+            },
+            {
+                'titulo': 'Tarjetas Amarillas',
+                'valor': 33,
+                'referencia': 42,
+                'color': '#FFD700'  # Amarillo
+            },
+            {
+                'titulo': 'TA Rival',
+                'valor': 40,
+                'referencia': 45,  # Media de la liga
+                'color': '#FFD700'  # Amarillo
+            },
+            {
+                'titulo': 'Tarjetas Rojas',
+                'valor': 2,
+                'referencia': 1.6,
+                'color': '#FF4136'  # Rojo
+            },
+            {
+                'titulo': 'TR Rival',
+                'valor': 1,
+                'referencia': 1.8,  # Media de la liga
+                'color': '#FF4136'  # Rojo
+            }
+        ]
     
     # Crear una fila para las tarjetas métricas (8 columnas)
     metric_cols = st.columns(8)
