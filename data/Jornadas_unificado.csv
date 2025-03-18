@@ -179,3 +179,48 @@ jornada,equipo_local,equipo_visitante,cod_acta,link_acta
 20,SP. ATº CIUTAT DE PALMA,"PENYA CIUTADELLA ESPORTIVA ""A""",670692.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670692&cod_acta=670692
 20,"ANDRATX ""A""","U D IBIZA ""A""",670693.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670693&cod_acta=670693
 20,"MANACOR ""A""",UD MAHON,670694.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670694&cod_acta=670694
+21,UD MAHON,"PENYA INDEPENDENT ""A""",670695.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670695&cod_acta=670695
+21,PALMA F.C.,"FERRERIES ""A""",670696.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670696&cod_acta=670696
+21,"SAN FRANCISCO ""B""","PENYA ARRABAL ""A""",670697.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670697&cod_acta=670697
+21,"SANTA CATALINA ATº ""A""","SD LA SALLE ""A""",670698.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670698&cod_acta=670698
+21,"PLA DE NA TESA ""A""","MALLORCA ""B""",670699.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670699&cod_acta=670699
+21,"CONSTANCIA ""A""","POBLENSE ""A""",670700.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670700&cod_acta=670700
+21,"PLATGES DE CALVIA ""A""",SP. ATº CIUTAT DE PALMA,670701.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670701&cod_acta=670701
+21,"ANDRATX ""A""","PENYA CIUTADELLA ESPORTIVA ""A""",670549.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670549&cod_acta=670549
+21,"U D IBIZA ""A""","MANACOR ""A""",670703.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670703&cod_acta=670703
+22,"FERRERIES ""A""","PENYA INDEPENDENT ""A""",670704.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670704&cod_acta=670704
+22,"PENYA ARRABAL ""A""",PALMA F.C.,670705.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670705&cod_acta=670705
+22,"SD LA SALLE ""A""","SAN FRANCISCO ""B""",670706.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670706&cod_acta=670706
+22,"MALLORCA ""B""","SANTA CATALINA ATº ""A""",670707.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670707&cod_acta=670707
+22,"POBLENSE ""A""","PLA DE NA TESA ""A""",670708.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670708&cod_acta=670708
+22,SP. ATº CIUTAT DE PALMA,"CONSTANCIA ""A""",670709.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670709&cod_acta=670709
+22,"ANDRATX ""A""","PLATGES DE CALVIA ""A""",723163.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=723163&cod_acta=723163
+22,"MANACOR ""A""","PENYA CIUTADELLA ESPORTIVA ""A""",670711.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670711&cod_acta=670711
+22,"U D IBIZA ""A""",UD MAHON,670712.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670712&cod_acta=670712
+23,UD MAHON,"FERRERIES ""A""",670713.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670713&cod_acta=670713
+23,"PENYA INDEPENDENT ""A""","PENYA ARRABAL ""A""",,
+23,PALMA F.C.,"SD LA SALLE ""A""",670715.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670715&cod_acta=670715
+23,"SAN FRANCISCO ""B""","MALLORCA ""B""",670716.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670716&cod_acta=670716
+23,"SANTA CATALINA ATº ""A""","POBLENSE ""A""",670717.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670717&cod_acta=670717
+23,"PLA DE NA TESA ""A""",SP. ATº CIUTAT DE PALMA,670718.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670718&cod_acta=670718
+23,"CONSTANCIA ""A""","ANDRATX ""A""",670719.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670719&cod_acta=670719
+23,"PLATGES DE CALVIA ""A""","MANACOR ""A""",670720.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670720&cod_acta=670720
+23,"PENYA CIUTADELLA ESPORTIVA ""A""","U D IBIZA ""A""",670721.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670721&cod_acta=670721
+24,"PENYA ARRABAL ""A""","FERRERIES ""A""",670722.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670722&cod_acta=670722
+24,"SD LA SALLE ""A""","PENYA INDEPENDENT ""A""",670723.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670723&cod_acta=670723
+24,"MALLORCA ""B""",PALMA F.C.,670724.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670724&cod_acta=670724
+24,"POBLENSE ""A""","SAN FRANCISCO ""B""",670725.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670725&cod_acta=670725
+24,SP. ATº CIUTAT DE PALMA,"SANTA CATALINA ATº ""A""",670726.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670726&cod_acta=670726
+24,"ANDRATX ""A""","PLA DE NA TESA ""A""",670727.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670727&cod_acta=670727
+24,"MANACOR ""A""","CONSTANCIA ""A""",670728.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670728&cod_acta=670728
+24,"U D IBIZA ""A""","PLATGES DE CALVIA ""A""",670729.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670729&cod_acta=670729
+24,"PENYA CIUTADELLA ESPORTIVA ""A""",UD MAHON,670730.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670730&cod_acta=670730
+25,UD MAHON,"PENYA ARRABAL ""A""",670731.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670731&cod_acta=670731
+25,"FERRERIES ""A""","SD LA SALLE ""A""",670732.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670732&cod_acta=670732
+25,"PENYA INDEPENDENT ""A""","MALLORCA ""B""",670733.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670733&cod_acta=670733
+25,PALMA F.C.,"POBLENSE ""A""",670734.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670734&cod_acta=670734
+25,"SAN FRANCISCO ""B""",SP. ATº CIUTAT DE PALMA,670735.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670735&cod_acta=670735
+25,"SANTA CATALINA ATº ""A""","ANDRATX ""A""",,
+25,"PLA DE NA TESA ""A""","MANACOR ""A""",670737.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670737&cod_acta=670737
+25,"CONSTANCIA ""A""","U D IBIZA ""A""",670738.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670738&cod_acta=670738
+25,"PLATGES DE CALVIA ""A""","PENYA CIUTADELLA ESPORTIVA ""A""",670739.0,https://www.ffib.es/Fed/NPcd/NFG_CmpPartido?cod_primaria=1000110&CodActa=670739&cod_acta=670739
