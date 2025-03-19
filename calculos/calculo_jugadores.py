@@ -4,6 +4,61 @@ Cálculos relacionados con estadísticas de jugadores
 import pandas as pd
 import numpy as np
 
+def ajustar_tarjetas_por_doble_amarilla(actas_df):
+    """
+    Ajusta el conteo de tarjetas para que cuando un jugador recibe 2 amarillas
+    en una misma jornada, se cuente como una tarjeta roja en lugar de 2 amarillas.
+    
+    Args:
+        actas_df: DataFrame con los datos de actas
+        
+    Returns:
+        DataFrame: DataFrame con las tarjetas ajustadas
+    """
+    # Crear una copia del DataFrame para no modificar el original
+    df_ajustado = actas_df.copy()
+    
+    # Agrupar por jugador y jornada para identificar casos de doble amarilla
+    tarjetas_por_jugador_jornada = df_ajustado.groupby(['jugador', 'jornada']).agg({
+        'Tarjetas Amarillas': 'sum',
+        'Tarjetas Rojas': 'sum'
+    }).reset_index()
+    
+    # Identificar jugadores con 2 o más amarillas en una jornada
+    jugadores_doble_amarilla = tarjetas_por_jugador_jornada[
+        (tarjetas_por_jugador_jornada['Tarjetas Amarillas'] >= 2)
+    ]
+    
+    # Para cada caso de doble amarilla, ajustar en el DataFrame original
+    for _, row in jugadores_doble_amarilla.iterrows():
+        jugador = row['jugador']
+        jornada = row['jornada']
+        amarillas = row['Tarjetas Amarillas']
+        
+        # Si hay 2 o más amarillas, convertir cada par en una roja
+        rojas_adicionales = amarillas // 2
+        amarillas_restantes = amarillas % 2
+        
+        # Localizar registros del jugador en esa jornada
+        mask = (df_ajustado['jugador'] == jugador) & (df_ajustado['jornada'] == jornada)
+        
+        # Actualizar el primer registro con los valores ajustados
+        if any(mask):
+            # Obtener el índice del primer registro que cumple con la condición
+            primer_registro = df_ajustado[mask].index[0]
+            
+            # Actualizar tarjetas amarillas y rojas
+            df_ajustado.loc[primer_registro, 'Tarjetas Amarillas'] = amarillas_restantes
+            df_ajustado.loc[primer_registro, 'Tarjetas Rojas'] += rojas_adicionales
+            
+            # Si hay más registros del mismo jugador en la misma jornada, poner a cero sus tarjetas
+            otros_registros = df_ajustado[mask].index[1:]
+            if len(otros_registros) > 0:
+                df_ajustado.loc[otros_registros, 'Tarjetas Amarillas'] = 0
+                df_ajustado.loc[otros_registros, 'Tarjetas Rojas'] = 0
+    
+    return df_ajustado
+
 def calcular_estadisticas_jugador(actas_df, jugador_nombre):
     """
     Calcula estadísticas generales para un jugador específico
@@ -15,8 +70,11 @@ def calcular_estadisticas_jugador(actas_df, jugador_nombre):
     Returns:
         dict: Diccionario con las estadísticas del jugador
     """
+    # Aplicar ajuste de tarjetas
+    actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
+    
     # Filtrar datos del jugador
-    datos_jugador = actas_df[actas_df['jugador'] == jugador_nombre]
+    datos_jugador = actas_ajustadas[actas_ajustadas['jugador'] == jugador_nombre]
     
     if datos_jugador.empty:
         return None
@@ -112,8 +170,11 @@ def obtener_top_amonestados(actas_df, top_n=5):
     Returns:
         DataFrame: DataFrame con los jugadores más amonestados
     """
+    # Aplicar ajuste de tarjetas
+    actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
+    
     # Agrupar por jugador y sumar tarjetas
-    tarjetas_por_jugador = actas_df.groupby('jugador').agg({
+    tarjetas_por_jugador = actas_ajustadas.groupby('jugador').agg({
         'Tarjetas Amarillas': 'sum',
         'Tarjetas Rojas': 'sum'
     }).reset_index()
@@ -206,8 +267,11 @@ def analizar_tarjetas_por_jugador(actas_df):
     Returns:
         DataFrame: DataFrame con tarjetas por jugador
     """
+    # Aplicar ajuste de tarjetas
+    actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
+    
     # Agrupar por jugador y sumar tarjetas
-    tarjetas_por_jugador = actas_df.groupby('jugador').agg({
+    tarjetas_por_jugador = actas_ajustadas.groupby('jugador').agg({
         'Tarjetas Amarillas': 'sum',
         'Tarjetas Rojas': 'sum'
     }).reset_index()

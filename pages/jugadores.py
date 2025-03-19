@@ -7,7 +7,7 @@ import pandas as pd
 # Importar módulos propios
 from utils.data import cargar_datos
 from utils.ui import page_config  # Solo importar page_config, no show_sidebar
-from calculos.calculo_jugadores import calcular_estadisticas_jugador
+from calculos.calculo_jugadores import calcular_estadisticas_jugador, ajustar_tarjetas_por_doble_amarilla
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, COLOR_TARJETAS_AMARILLAS, COLOR_TARJETAS_ROJAS
 
 # Configurar la página
@@ -318,39 +318,57 @@ def main():
             # Pestaña de Tarjetas
             with gt_tab2:
                 if estadisticas['tarjetas_amarillas'] > 0 or estadisticas['tarjetas_rojas'] > 0:
-                    # Crear tabla de tarjetas (similar a la de goles)
-                    # Primero buscar todas las actas donde el jugador ha recibido tarjetas
-                    tarjetas_temp = []
-                    seen = set()  # Para registrar las tarjetas ya procesadas
+                    # Aplicar ajuste de tarjetas
+                    actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(data['actas_penya'])
                     
-                    for _, row in data['actas_penya'][(data['actas_penya']['jugador'] == jugador_seleccionado) & 
-                                                    ((data['actas_penya']['Tarjetas Amarillas'] > 0) | 
-                                                      (data['actas_penya']['Tarjetas Rojas'] > 0))].iterrows():
-                        # Clave única para identificar tarjetas
+                    # Filtrar las actas del jugador
+                    actas_jugador = actas_ajustadas[actas_ajustadas['jugador'] == jugador_seleccionado].copy()
+                    
+                    # Crear una lista para almacenar las tarjetas
+                    tarjetas_temp = []
+                    
+                    # Procesar tarjetas amarillas (después del ajuste)
+                    for _, row in actas_jugador[actas_jugador['Tarjetas Amarillas'] > 0].iterrows():
+                        tarjetas_temp.append({
+                            'Jornada': row['jornada'],
+                            'Tipo': 'Amarilla',
+                            'Rival': row['rival'],
+                            'Doble Amarilla': '-'
+                        })
+                    
+                    # Procesar tarjetas rojas
+                    for _, row in actas_jugador[actas_jugador['Tarjetas Rojas'] > 0].iterrows():
+                        # Verificar si es una tarjeta roja directa o por doble amarilla
                         jornada = row['jornada']
-                        rival = row['rival']
                         
-                        # Por cada tarjeta amarilla, añadir una fila evitando duplicados
-                        if row['Tarjetas Amarillas'] > 0:
-                            key = f"{jornada}-{rival}-Amarilla"
-                            if key not in seen:
-                                tarjetas_temp.append({
-                                    'Jornada': jornada,
-                                    'Tipo': 'Amarilla',
-                                    'Rival': rival
-                                })
-                                seen.add(key)
+                        # Comprobar si esta roja proviene de una doble amarilla
+                        # Verificamos comparando con las actas originales
+                        actas_original = data['actas_penya'][
+                            (data['actas_penya']['jugador'] == jugador_seleccionado) & 
+                            (data['actas_penya']['jornada'] == jornada)
+                        ]
                         
-                        # Por cada tarjeta roja, añadir una fila evitando duplicados
-                        if row['Tarjetas Rojas'] > 0:
-                            key = f"{jornada}-{rival}-Roja"
-                            if key not in seen:
-                                tarjetas_temp.append({
-                                    'Jornada': jornada,
-                                    'Tipo': 'Roja',
-                                    'Rival': rival
-                                })
-                                seen.add(key)
+                        amarillas_originales = actas_original['Tarjetas Amarillas'].sum()
+                        rojas_originales = actas_original['Tarjetas Rojas'].sum()
+                        
+                        # Si en las actas originales hay 2+ amarillas y en las ajustadas hay menos,
+                        # es una roja por doble amarilla
+                        es_por_doble_amarilla = amarillas_originales >= 2 and row['Tarjetas Amarillas'] < amarillas_originales
+                        
+                        # Añadir tarjetas rojas a la lista
+                        for i in range(int(row['Tarjetas Rojas'])):
+                            # Si es la primera roja y proviene de doble amarilla
+                            if i == 0 and es_por_doble_amarilla:
+                                doble_amarilla = 'Si'
+                            else:
+                                doble_amarilla = 'No'
+                                
+                            tarjetas_temp.append({
+                                'Jornada': jornada,
+                                'Tipo': 'Roja',
+                                'Rival': row['rival'],
+                                'Doble Amarilla': doble_amarilla
+                            })
                     
                     # Crear DataFrame
                     if tarjetas_temp:

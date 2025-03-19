@@ -4,6 +4,61 @@ Cálculos relacionados con estadísticas del equipo
 import pandas as pd
 import numpy as np
 
+def ajustar_tarjetas_por_doble_amarilla(actas_df):
+    """
+    Ajusta el conteo de tarjetas para que cuando un jugador recibe 2 amarillas
+    en una misma jornada, se cuente como una tarjeta roja en lugar de 2 amarillas.
+    
+    Args:
+        actas_df: DataFrame con los datos de actas
+        
+    Returns:
+        DataFrame: DataFrame con las tarjetas ajustadas
+    """
+    # Crear una copia del DataFrame para no modificar el original
+    df_ajustado = actas_df.copy()
+    
+    # Agrupar por jugador y jornada para identificar casos de doble amarilla
+    tarjetas_por_jugador_jornada = df_ajustado.groupby(['jugador', 'jornada']).agg({
+        'Tarjetas Amarillas': 'sum',
+        'Tarjetas Rojas': 'sum'
+    }).reset_index()
+    
+    # Identificar jugadores con 2 o más amarillas en una jornada
+    jugadores_doble_amarilla = tarjetas_por_jugador_jornada[
+        (tarjetas_por_jugador_jornada['Tarjetas Amarillas'] >= 2)
+    ]
+    
+    # Para cada caso de doble amarilla, ajustar en el DataFrame original
+    for _, row in jugadores_doble_amarilla.iterrows():
+        jugador = row['jugador']
+        jornada = row['jornada']
+        amarillas = row['Tarjetas Amarillas']
+        
+        # Si hay 2 o más amarillas, convertir cada par en una roja
+        rojas_adicionales = amarillas // 2
+        amarillas_restantes = amarillas % 2
+        
+        # Localizar registros del jugador en esa jornada
+        mask = (df_ajustado['jugador'] == jugador) & (df_ajustado['jornada'] == jornada)
+        
+        # Actualizar el primer registro con los valores ajustados
+        if any(mask):
+            # Obtener el índice del primer registro que cumple con la condición
+            primer_registro = df_ajustado[mask].index[0]
+            
+            # Actualizar tarjetas amarillas y rojas
+            df_ajustado.loc[primer_registro, 'Tarjetas Amarillas'] = amarillas_restantes
+            df_ajustado.loc[primer_registro, 'Tarjetas Rojas'] += rojas_adicionales
+            
+            # Si hay más registros del mismo jugador en la misma jornada, poner a cero sus tarjetas
+            otros_registros = df_ajustado[mask].index[1:]
+            if len(otros_registros) > 0:
+                df_ajustado.loc[otros_registros, 'Tarjetas Amarillas'] = 0
+                df_ajustado.loc[otros_registros, 'Tarjetas Rojas'] = 0
+    
+    return df_ajustado
+
 def contar_partidos_jugados(partidos_df):
     """
     Cuenta los partidos jugados, verificando que tengan un enlace de acta válido
@@ -41,9 +96,12 @@ def calcular_estadisticas_generales(actas_df, goles_df, partidos_df):
     # Usar la función común para contar partidos jugados
     total_partidos = contar_partidos_jugados(partidos_df)
     
+    # Ajustar tarjetas (convertir dobles amarillas en rojas)
+    actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
+    
     total_goles = len(goles_df)
-    total_tarjetas_amarillas = actas_df['Tarjetas Amarillas'].sum()
-    total_tarjetas_rojas = actas_df['Tarjetas Rojas'].sum()
+    total_tarjetas_amarillas = actas_ajustadas['Tarjetas Amarillas'].sum()
+    total_tarjetas_rojas = actas_ajustadas['Tarjetas Rojas'].sum()
     
     # Minutos jugados por todos los jugadores
     total_minutos = actas_df['minutos_jugados'].sum()
@@ -73,8 +131,11 @@ def analizar_tarjetas_por_jornada(actas_df):
     Returns:
         DataFrame: DataFrame con tarjetas por jornada
     """
+    # Aplicar ajuste de tarjetas
+    actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
+    
     # Agrupar por jornada y sumar tarjetas
-    tarjetas_por_jornada = actas_df.groupby('jornada').agg({
+    tarjetas_por_jornada = actas_ajustadas.groupby('jornada').agg({
         'Tarjetas Amarillas': 'sum',
         'Tarjetas Rojas': 'sum'
     }).reset_index()
@@ -202,9 +263,12 @@ def calcular_tarjetas_rivales(actas_completas_df, partidos_df):
     Returns:
         dict: Diccionario con total de tarjetas amarillas y rojas de rivales
     """
+    # Aplicar ajuste de tarjetas para los rivales también
+    actas_completas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_completas_df)
+    
     # Enfoque 1: Buscar actas donde Penya aparece como rival
-    actas_rivales = actas_completas_df[
-        actas_completas_df['rival'].str.contains('PENYA INDEPENDENT', na=False)
+    actas_rivales = actas_completas_ajustadas[
+        actas_completas_ajustadas['rival'].str.contains('PENYA INDEPENDENT', na=False)
     ]
     
     # Sumar tarjetas de esas actas
@@ -237,9 +301,9 @@ def calcular_tarjetas_rivales(actas_completas_df, partidos_df):
                 continue
                 
             # Buscar actas del rival en esta jornada
-            actas_rival = actas_completas_df[
-                (actas_completas_df['jornada'] == jornada) & 
-                (actas_completas_df['equipo'].str.contains(str(rival), na=False))
+            actas_rival = actas_completas_ajustadas[
+                (actas_completas_ajustadas['jornada'] == jornada) & 
+                (actas_completas_ajustadas['equipo'].str.contains(str(rival), na=False))
             ]
             # Sumar tarjetas del rival
             ta_rival += actas_rival['Tarjetas Amarillas'].sum()
@@ -284,12 +348,16 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     # Calcular los goles en contra
     goles_contra = calcular_goles_contra(actas_df, partidos_df, actas_completas_df)
     
+    # Aplicar ajuste de tarjetas
+    actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
+    actas_completas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_completas_df)
+    
     # Calcular tarjetas del equipo
-    tarjetas_amarillas = int(actas_df['Tarjetas Amarillas'].sum())
-    tarjetas_rojas = int(actas_df['Tarjetas Rojas'].sum())
+    tarjetas_amarillas = int(actas_ajustadas['Tarjetas Amarillas'].sum())
+    tarjetas_rojas = int(actas_ajustadas['Tarjetas Rojas'].sum())
     
     # Calcular tarjetas de los rivales
-    tarjetas_rivales = calcular_tarjetas_rivales(actas_completas_df, partidos_df)
+    tarjetas_rivales = calcular_tarjetas_rivales(actas_completas_ajustadas, partidos_df)
     ta_rival = tarjetas_rivales['amarillas']
     tr_rival = tarjetas_rivales['rojas']
     
@@ -307,7 +375,7 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     ref_goles_contra = int(round(goles_otros_equipos.mean()))
     
     # Media de tarjetas amarillas de la liga
-    tarjetas_por_equipo = actas_completas_df.groupby('equipo')['Tarjetas Amarillas'].sum()
+    tarjetas_por_equipo = actas_completas_ajustadas.groupby('equipo')['Tarjetas Amarillas'].sum()
     tarjetas_otros_equipos = tarjetas_por_equipo[~tarjetas_por_equipo.index.str.contains('PENYA INDEPENDENT')]
     ref_tarjetas_amarillas = int(round(tarjetas_otros_equipos.mean()))
     
@@ -315,7 +383,7 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     ref_ta_rival = int(round(tarjetas_otros_equipos.mean()))
     
     # Media de tarjetas rojas de la liga
-    rojas_por_equipo = actas_completas_df.groupby('equipo')['Tarjetas Rojas'].sum()
+    rojas_por_equipo = actas_completas_ajustadas.groupby('equipo')['Tarjetas Rojas'].sum()
     rojas_otros_equipos = rojas_por_equipo[~rojas_por_equipo.index.str.contains('PENYA INDEPENDENT')]
     ref_tarjetas_rojas = round(rojas_otros_equipos.mean(), 1)
     
