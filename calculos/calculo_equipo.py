@@ -4,6 +4,37 @@ Cálculos relacionados con estadísticas del equipo
 import pandas as pd
 import numpy as np
 
+def normalizar_nombre_equipo(nombre):
+    """
+    Normaliza el nombre del equipo para asegurar compatibilidad entre diferentes archivos.
+    Elimina las comillas y normaliza el formato.
+    
+    Args:
+        nombre: Nombre del equipo a normalizar
+        
+    Returns:
+        str: Nombre normalizado
+    """
+    if not nombre:
+        return nombre
+    
+    # Eliminar espacios adicionales
+    nombre = nombre.strip()
+    
+    # Reemplazar comillas dobles por espacio
+    nombre = nombre.replace('"', '')
+    
+    # Reemplazar barras invertidas
+    nombre = nombre.replace('\\', '')
+    
+    # Ajuste específico para equipos con sufijo "A", "B", etc.
+    if " A" in nombre or " B" in nombre:
+        # Asegurar que hay un espacio antes de A/B
+        nombre = nombre.replace("A", " A").replace("  A", " A")
+        nombre = nombre.replace("B", " B").replace("  B", " B")
+        
+    return nombre
+
 def ajustar_tarjetas_por_doble_amarilla(actas_df):
     """
     Ajusta el conteo de tarjetas para que cuando un jugador recibe 2 amarillas
@@ -59,29 +90,26 @@ def ajustar_tarjetas_por_doble_amarilla(actas_df):
     
     return df_ajustado
 
-def contar_partidos_jugados(partidos_df):
+def contar_partidos_jugados(partidos_df, equipo_seleccionado="PENYA INDEPENDENT"):
     """
     Cuenta los partidos jugados, verificando que tengan un enlace de acta válido
     
     Args:
         partidos_df: DataFrame con datos de partidos
+        equipo_seleccionado: Nombre del equipo para filtrar los partidos (default: "PENYA INDEPENDENT")
         
     Returns:
         int: Número de partidos jugados
     """
-    # Filtrar partidos de la Penya (local o visitante)
-    partidos_penya = partidos_df[
-        (partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)) | 
-        (partidos_df['equipo_visitante'].str.contains('PENYA INDEPENDENT', na=False))
-    ]
-    
-    # Contar solo partidos con enlace de acta (partidos realmente jugados)
-    partidos_jugados = partidos_penya[partidos_penya['link_acta'].notna() & 
-                                      (partidos_penya['link_acta'] != '')].shape[0]
+    # Los partidos ya deberían estar filtrados, solo contar los que tienen acta válida
+    partidos_jugados = partidos_df[
+        partidos_df['link_acta'].notna() & 
+        (partidos_df['link_acta'] != '')
+    ].shape[0]
     
     return partidos_jugados
 
-def calcular_estadisticas_generales(actas_df, goles_df, partidos_df):
+def calcular_estadisticas_generales(actas_df, goles_df, partidos_df, equipo_seleccionado="PENYA INDEPENDENT"):
     """
     Calcula estadísticas generales del equipo
     
@@ -89,12 +117,13 @@ def calcular_estadisticas_generales(actas_df, goles_df, partidos_df):
         actas_df: DataFrame con datos de actas
         goles_df: DataFrame con datos de goles
         partidos_df: DataFrame con datos de partidos
+        equipo_seleccionado: Nombre del equipo para filtrar los cálculos (default: "PENYA INDEPENDENT")
         
     Returns:
         dict: Diccionario con estadísticas generales
     """
     # Usar la función común para contar partidos jugados
-    total_partidos = contar_partidos_jugados(partidos_df)
+    total_partidos = contar_partidos_jugados(partidos_df, equipo_seleccionado)
     
     # Ajustar tarjetas (convertir dobles amarillas en rojas)
     actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
@@ -189,62 +218,66 @@ def analizar_tipos_goles(goles_df):
     
     return tipos_goles
 
-def calcular_goles_contra(actas_df, partidos_df, actas_completas_df):
+def calcular_goles_contra(actas_df, partidos_df, actas_completas_df, equipo_seleccionado="PENYA INDEPENDENT"):
     """
     Calcula los goles en contra basado en los datos de las actas
     
     Args:
-        actas_df: DataFrame con datos de actas de Penya
+        actas_df: DataFrame con datos de actas del equipo seleccionado
         partidos_df: DataFrame con datos de partidos
         actas_completas_df: DataFrame con todas las actas
+        equipo_seleccionado: Nombre del equipo para filtrar los cálculos (default: "PENYA INDEPENDENT")
         
     Returns:
         int: Total de goles en contra
     """
-    # Enfoque 1: Buscar actas donde Penya aparece como rival
-    actas_contra_penya = actas_completas_df[
-        actas_completas_df['rival'].str.contains('PENYA INDEPENDENT', na=False)
+    # Normalizar nombre del equipo seleccionado para comparaciones
+    equipo_normalizado = normalizar_nombre_equipo(equipo_seleccionado)
+    
+    # Enfoque 1: Buscar actas donde el equipo seleccionado aparece como rival
+    actas_contra_equipo = actas_completas_df[
+        actas_completas_df['rival'].apply(lambda x: normalizar_nombre_equipo(x)).str.contains(equipo_normalizado, na=False)
     ]
     
     # Sumar los goles de esas actas
-    goles_contra = actas_contra_penya['goles'].sum()
+    goles_contra = actas_contra_equipo['goles'].sum()
     
     # Si no encontramos resultados con este método, intentar otro enfoque
     if goles_contra == 0:
         # Enfoque 2: Usar las jornadas y partidos para identificar rivales
         
-        # Identificar jornadas donde juega la Penya
-        jornadas_penya = actas_df['jornada'].unique()
+        # Identificar jornadas donde juega el equipo seleccionado
+        jornadas_equipo = actas_df['jornada'].unique()
         
-        # Filtrar partidos con la Penya
-        partidos_penya = partidos_df[
-            (partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)) | 
-            (partidos_df['equipo_visitante'].str.contains('PENYA INDEPENDENT', na=False))
-        ]
+        # Filtrar partidos con el equipo seleccionado
+        partidos_equipo = partidos_df.copy()  # Ya está filtrado en equipos.py
         
         # Mapear jornadas a rivales
         jornada_rival = {}
-        for _, partido in partidos_penya.iterrows():
+        for _, partido in partidos_equipo.iterrows():
             if pd.isna(partido['jornada']):
                 continue
                 
             jornada = partido['jornada']
-            if 'PENYA INDEPENDENT' in str(partido['equipo_local']):
+            
+            if normalizar_nombre_equipo(partido['equipo_local']).find(equipo_normalizado) >= 0:
                 jornada_rival[jornada] = partido['equipo_visitante']
             else:
                 jornada_rival[jornada] = partido['equipo_local']
         
         # Contar goles en contra (goles de los rivales)
-        for jornada in jornadas_penya:
+        for jornada in jornadas_equipo:
             if jornada in jornada_rival:
                 rival = jornada_rival[jornada]
                 if pd.isna(rival):
                     continue
-                    
+                
+                rival_normalizado = normalizar_nombre_equipo(rival)
+                
                 # Buscar actas del rival en esta jornada
                 actas_rival = actas_completas_df[
                     (actas_completas_df['jornada'] == jornada) & 
-                    (actas_completas_df['equipo'].str.contains(str(rival), na=False))
+                    (actas_completas_df['equipo'].apply(lambda x: normalizar_nombre_equipo(x)).str.contains(rival_normalizado, na=False))
                 ]
                 
                 # Sumar goles del rival
@@ -252,23 +285,27 @@ def calcular_goles_contra(actas_df, partidos_df, actas_completas_df):
 
     return int(goles_contra)
 
-def calcular_tarjetas_rivales(actas_completas_df, partidos_df):
+def calcular_tarjetas_rivales(actas_completas_df, partidos_df, equipo_seleccionado="PENYA INDEPENDENT"):
     """
     Calcula las tarjetas de los equipos rivales
     
     Args:
         actas_completas_df: DataFrame con todas las actas
         partidos_df: DataFrame con datos de partidos
+        equipo_seleccionado: Nombre del equipo para filtrar los cálculos (default: "PENYA INDEPENDENT")
         
     Returns:
         dict: Diccionario con total de tarjetas amarillas y rojas de rivales
     """
+    # Normalizar nombre del equipo seleccionado para comparaciones
+    equipo_normalizado = normalizar_nombre_equipo(equipo_seleccionado)
+    
     # Aplicar ajuste de tarjetas para los rivales también
     actas_completas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_completas_df)
     
-    # Enfoque 1: Buscar actas donde Penya aparece como rival
+    # Enfoque 1: Buscar actas donde el equipo seleccionado aparece como rival
     actas_rivales = actas_completas_ajustadas[
-        actas_completas_ajustadas['rival'].str.contains('PENYA INDEPENDENT', na=False)
+        actas_completas_ajustadas['rival'].apply(lambda x: normalizar_nombre_equipo(x)).str.contains(equipo_normalizado, na=False)
     ]
     
     # Sumar tarjetas de esas actas
@@ -277,20 +314,18 @@ def calcular_tarjetas_rivales(actas_completas_df, partidos_df):
     
     # Si no encontramos resultados con este método, intentar enfoque alternativo
     if ta_rival == 0 and tr_rival == 0:
-        # Filtrar partidos con la Penya
-        partidos_penya = partidos_df[
-            (partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)) | 
-            (partidos_df['equipo_visitante'].str.contains('PENYA INDEPENDENT', na=False))
-        ]
+        # Filtrar partidos del equipo seleccionado
+        partidos_equipo = partidos_df.copy()  # Ya está filtrado en equipos.py
         
         # Mapear jornadas a rivales
         jornada_rival = {}
-        for _, partido in partidos_penya.iterrows():
+        for _, partido in partidos_equipo.iterrows():
             if pd.isna(partido['jornada']):
                 continue
                 
             jornada = partido['jornada']
-            if 'PENYA INDEPENDENT' in str(partido['equipo_local']):
+            
+            if normalizar_nombre_equipo(partido['equipo_local']).find(equipo_normalizado) >= 0:
                 jornada_rival[jornada] = partido['equipo_visitante']
             else:
                 jornada_rival[jornada] = partido['equipo_local']
@@ -300,10 +335,12 @@ def calcular_tarjetas_rivales(actas_completas_df, partidos_df):
             if pd.isna(rival):
                 continue
                 
+            rival_normalizado = normalizar_nombre_equipo(rival)
+            
             # Buscar actas del rival en esta jornada
             actas_rival = actas_completas_ajustadas[
                 (actas_completas_ajustadas['jornada'] == jornada) & 
-                (actas_completas_ajustadas['equipo'].str.contains(str(rival), na=False))
+                (actas_completas_ajustadas['equipo'].apply(lambda x: normalizar_nombre_equipo(x)).str.contains(rival_normalizado, na=False))
             ]
             # Sumar tarjetas del rival
             ta_rival += actas_rival['Tarjetas Amarillas'].sum()
@@ -314,39 +351,44 @@ def calcular_tarjetas_rivales(actas_completas_df, partidos_df):
         'rojas': int(tr_rival)
     }
 
-def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas_df):
+def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas_df, equipo_seleccionado="PENYA INDEPENDENT"):
     """
     Calcula métricas avanzadas para mostrar en tarjetas
     
     Args:
         partidos_df: DataFrame con datos de partidos
         goles_df: DataFrame con datos de goles
-        actas_df: DataFrame con datos de actas de Penya
+        actas_df: DataFrame con datos de actas del equipo seleccionado
         actas_completas_df: DataFrame con todas las actas (todos los equipos)
+        equipo_seleccionado: Nombre del equipo para filtrar los cálculos (default: "PENYA INDEPENDENT")
         
     Returns:
-        list: Lista de diccionarios con métricas para mostrar
+        dict: Diccionario con métricas para mostrar
     """
+    # Normalizar nombre del equipo para comparaciones
+    equipo_normalizado = normalizar_nombre_equipo(equipo_seleccionado)
+    
     # Determinar partidos locales y visitantes
     partidos_df = partidos_df.copy()
-    partidos_df['es_local'] = partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)
+    partidos_df['es_local'] = partidos_df['equipo_local'].apply(
+        lambda x: normalizar_nombre_equipo(x)).str.contains(equipo_normalizado, na=False)
     
-    # Usar la función común para contar partidos jugados
-    partidos_jugados = contar_partidos_jugados(partidos_df)
+    # Contar partidos jugados (con link_acta) para el equipo seleccionado
+    partidos_jugados = partidos_df[
+        partidos_df['link_acta'].notna() & 
+        (partidos_df['link_acta'] != '')
+    ].shape[0]
     
     # Crear listas de jornadas por condición
-    partidos_penya = partidos_df[
-        (partidos_df['equipo_local'].str.contains('PENYA INDEPENDENT', na=False)) | 
-        (partidos_df['equipo_visitante'].str.contains('PENYA INDEPENDENT', na=False))
-    ]
-    jornadas_local = partidos_penya[partidos_penya['es_local']]['jornada'].tolist()
-    jornadas_visitante = partidos_penya[~partidos_penya['es_local']]['jornada'].tolist()
+    partidos_equipo = partidos_df.copy()
+    jornadas_local = partidos_equipo[partidos_equipo['es_local']]['jornada'].tolist()
+    jornadas_visitante = partidos_equipo[~partidos_equipo['es_local']]['jornada'].tolist()
     
-    # Contar goles a favor (total de goles marcados por Penya)
+    # Contar goles a favor (total de goles marcados por el equipo)
     goles_favor = len(goles_df)
     
     # Calcular los goles en contra
-    goles_contra = calcular_goles_contra(actas_df, partidos_df, actas_completas_df)
+    goles_contra = calcular_goles_contra(actas_df, partidos_df, actas_completas_df, equipo_seleccionado)
     
     # Aplicar ajuste de tarjetas
     actas_ajustadas = ajustar_tarjetas_por_doble_amarilla(actas_df)
@@ -357,7 +399,7 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     tarjetas_rojas = int(actas_ajustadas['Tarjetas Rojas'].sum())
     
     # Calcular tarjetas de los rivales
-    tarjetas_rivales = calcular_tarjetas_rivales(actas_completas_ajustadas, partidos_df)
+    tarjetas_rivales = calcular_tarjetas_rivales(actas_completas_ajustadas, partidos_df, equipo_seleccionado)
     ta_rival = tarjetas_rivales['amarillas']
     tr_rival = tarjetas_rivales['rojas']
     
@@ -367,8 +409,10 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     # Calcular valores de referencia (medias de la liga)
     # Calculamos la media de goles de todos los otros equipos
     goles_por_equipo = actas_completas_df.groupby('equipo')['goles'].sum()
-    # Excluir a Penya Independent para calcular la media
-    goles_otros_equipos = goles_por_equipo[~goles_por_equipo.index.str.contains('PENYA INDEPENDENT')]
+    # Excluir al equipo seleccionado para calcular la media
+    # Corregido: usar map() en lugar de apply() para objetos Index
+    goles_otros_equipos = goles_por_equipo[goles_por_equipo.index.map(
+        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
     ref_goles_favor = int(round(goles_otros_equipos.mean()))
     
     # Media de goles en contra (goles a favor de los otros equipos)
@@ -376,7 +420,9 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     
     # Media de tarjetas amarillas de la liga
     tarjetas_por_equipo = actas_completas_ajustadas.groupby('equipo')['Tarjetas Amarillas'].sum()
-    tarjetas_otros_equipos = tarjetas_por_equipo[~tarjetas_por_equipo.index.str.contains('PENYA INDEPENDENT')]
+    # Corregido: usar map() en lugar de apply() para objetos Index
+    tarjetas_otros_equipos = tarjetas_por_equipo[tarjetas_por_equipo.index.map(
+        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
     ref_tarjetas_amarillas = int(round(tarjetas_otros_equipos.mean()))
     
     # Media de tarjetas amarillas de la liga para rivales
@@ -384,7 +430,9 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     
     # Media de tarjetas rojas de la liga
     rojas_por_equipo = actas_completas_ajustadas.groupby('equipo')['Tarjetas Rojas'].sum()
-    rojas_otros_equipos = rojas_por_equipo[~rojas_por_equipo.index.str.contains('PENYA INDEPENDENT')]
+    # Corregido: usar map() en lugar de apply() para objetos Index
+    rojas_otros_equipos = rojas_por_equipo[rojas_por_equipo.index.map(
+        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
     ref_tarjetas_rojas = round(rojas_otros_equipos.mean(), 1)
     
     # Media de tarjetas rojas de la liga para rivales
@@ -392,7 +440,9 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     
     # Media de jugadores por equipo
     jugadores_por_equipo = actas_completas_df.groupby('equipo')['jugador'].nunique()
-    jugadores_otros_equipos = jugadores_por_equipo[~jugadores_por_equipo.index.str.contains('PENYA INDEPENDENT')]
+    # Corregido: usar map() en lugar de apply() para objetos Index
+    jugadores_otros_equipos = jugadores_por_equipo[jugadores_por_equipo.index.map(
+        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
     ref_num_jugadores = round(jugadores_otros_equipos.mean(), 1)
     
     # Crear métricas para sección de goles
