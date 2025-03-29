@@ -351,7 +351,7 @@ def calcular_tarjetas_rivales(actas_completas_df, partidos_df, equipo_selecciona
         'rojas': int(tr_rival)
     }
 
-def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas_df, equipo_seleccionado="PENYA INDEPENDENT"):
+def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas_df, equipo_seleccionado="PENYA INDEPENDENT", medias_liga=None):
     """
     Calcula métricas avanzadas para mostrar en tarjetas
     
@@ -361,6 +361,7 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
         actas_df: DataFrame con datos de actas del equipo seleccionado
         actas_completas_df: DataFrame con todas las actas (todos los equipos)
         equipo_seleccionado: Nombre del equipo para filtrar los cálculos (default: "PENYA INDEPENDENT")
+        medias_liga: Diccionario con las medias de la liga (opcional)
         
     Returns:
         dict: Diccionario con métricas para mostrar
@@ -406,44 +407,27 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     # Calcular número de jugadores y partidos
     num_jugadores = actas_df['jugador'].nunique()
     
-    # Calcular valores de referencia (medias de la liga)
-    # Calculamos la media de goles de todos los otros equipos
-    goles_por_equipo = actas_completas_df.groupby('equipo')['goles'].sum()
-    # Excluir al equipo seleccionado para calcular la media
-    # Corregido: usar map() en lugar de apply() para objetos Index
-    goles_otros_equipos = goles_por_equipo[goles_por_equipo.index.map(
-        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
-    ref_goles_favor = int(round(goles_otros_equipos.mean()))
+    # Si no se proporcionaron medias, usar valores predeterminados
+    if medias_liga is None:
+        # Valores predeterminados como respaldo
+        medias_liga = {
+            'ref_goles_favor': 28,
+            'ref_goles_contra': 28,
+            'ref_tarjetas_amarillas': 42,
+            'ref_ta_rival': 42,
+            'ref_tarjetas_rojas': 1.6,
+            'ref_tr_rival': 1.6,
+            'ref_num_jugadores': 27.7
+        }
     
-    # Media de goles en contra (goles a favor de los otros equipos)
-    ref_goles_contra = int(round(goles_otros_equipos.mean()))
-    
-    # Media de tarjetas amarillas de la liga
-    tarjetas_por_equipo = actas_completas_ajustadas.groupby('equipo')['Tarjetas Amarillas'].sum()
-    # Corregido: usar map() en lugar de apply() para objetos Index
-    tarjetas_otros_equipos = tarjetas_por_equipo[tarjetas_por_equipo.index.map(
-        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
-    ref_tarjetas_amarillas = int(round(tarjetas_otros_equipos.mean()))
-    
-    # Media de tarjetas amarillas de la liga para rivales
-    ref_ta_rival = int(round(tarjetas_otros_equipos.mean()))
-    
-    # Media de tarjetas rojas de la liga
-    rojas_por_equipo = actas_completas_ajustadas.groupby('equipo')['Tarjetas Rojas'].sum()
-    # Corregido: usar map() en lugar de apply() para objetos Index
-    rojas_otros_equipos = rojas_por_equipo[rojas_por_equipo.index.map(
-        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
-    ref_tarjetas_rojas = round(rojas_otros_equipos.mean(), 1)
-    
-    # Media de tarjetas rojas de la liga para rivales
-    ref_tr_rival = round(rojas_otros_equipos.mean(), 1)
-    
-    # Media de jugadores por equipo
-    jugadores_por_equipo = actas_completas_df.groupby('equipo')['jugador'].nunique()
-    # Corregido: usar map() en lugar de apply() para objetos Index
-    jugadores_otros_equipos = jugadores_por_equipo[jugadores_por_equipo.index.map(
-        lambda x: equipo_normalizado not in normalizar_nombre_equipo(x))]
-    ref_num_jugadores = round(jugadores_otros_equipos.mean(), 1)
+    # Obtener valores de referencia de las medias precalculadas
+    ref_goles_favor = medias_liga['ref_goles_favor']
+    ref_goles_contra = medias_liga['ref_goles_contra']
+    ref_tarjetas_amarillas = medias_liga['ref_tarjetas_amarillas']
+    ref_ta_rival = medias_liga['ref_ta_rival']
+    ref_tarjetas_rojas = medias_liga['ref_tarjetas_rojas']
+    ref_tr_rival = medias_liga['ref_tr_rival']
+    ref_num_jugadores = medias_liga['ref_num_jugadores']
     
     # Crear métricas para sección de goles
     metricas_goles = [
@@ -491,7 +475,7 @@ def calcular_metricas_avanzadas(partidos_df, goles_df, actas_df, actas_completas
     
     # Crear métricas para sección general
     metricas_general = [
-        {
+             {
             'titulo': 'Num. Jugadores',
             'valor': num_jugadores,
             'referencia': ref_num_jugadores,

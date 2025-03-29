@@ -26,103 +26,92 @@ page_config()
 # Cargar datos
 data = cargar_datos()
 
+import re
+
+def normalizar_nombre_equipo(nombre):
+    if pd.isna(nombre):
+        return ""
+    nombre = str(nombre).replace('"', '').replace('\\', '')
+    nombre = re.sub(r'\s+', '', nombre)  # Elimina todos los espacios internos
+    return nombre.upper().strip()
+
 def main():
     """Función principal que muestra el dashboard"""
     
-    # SOLUCIÓN EXTREMADAMENTE SIMPLE: SÓLO 3 COLUMNAS CON MENOS ESPACIO
+    equipo_objetivo = "PENYA INDEPENDENT A"
+    equipo_normalizado = normalizar_nombre_equipo(equipo_objetivo)
+
+    # Filtrar los datos para PENYA INDEPENDENT A usando coincidencia exacta y normalizada
+    actas_penya = data['actas'][data['actas']['equipo'].apply(normalizar_nombre_equipo) == equipo_normalizado]
+    goles_penya = data['goles'][data['goles']['equipo'].apply(normalizar_nombre_equipo) == equipo_normalizado]
+    partidos_penya = data['jornadas'][
+        (data['jornadas']['equipo_local'].apply(normalizar_nombre_equipo) == equipo_normalizado) |
+        (data['jornadas']['equipo_visitante'].apply(normalizar_nombre_equipo) == equipo_normalizado)
+    ]
+
+    # Cabecera
     c1, c2, c3 = st.columns([2, 3, 2], gap="small")
-    
     with c1:
-        # Logo de Penya mucho más cerca
         st.image("assets/logo_penya.png", width=110) 
-    
     with c2:
-        # Título con mucho menos espacio
         st.write("# Penya Independent")
         st.write("#### Análisis de Rendimiento")
-    
     with c3:
-        # Logo FFIB
-        st.write("")  # Añadir un único espacio para alinearlo
+        st.write("")
         st.image("assets/logo_ffib.png", width=140)
     
-    # Espacio para separar el título del contenido
     st.markdown("---")
     
     # Calcular estadísticas generales
     estadisticas_equipo = calcular_estadisticas_generales(
-        data['actas_penya'], 
-        data['goles_penya'], 
-        data['partidos_penya']
+        actas_penya, goles_penya, partidos_penya, equipo_seleccionado=equipo_objetivo
     )
     
-    # Calcular goles en contra de manera dinámica
+    # Calcular goles recibidos de forma robusta
     try:
-        # Intentar calcular con la función metricas_avanzadas
         metricas_avanzadas = calcular_metricas_avanzadas(
-            data['partidos_penya'], 
-            data['goles_penya'], 
-            data['actas_penya'], 
-            data['actas']
+            partidos_penya, goles_penya, actas_penya, data['actas'],
+            equipo_seleccionado=equipo_objetivo
         )
         goles_recibidos = metricas_avanzadas['goles'][1]['valor']
     except Exception as e:
-        # Si falla, intentar directamente con calcular_goles_contra
         try:
             goles_recibidos = calcular_goles_contra(
-                data['actas_penya'], 
-                data['partidos_penya'], 
-                data['actas']
+                actas_penya, partidos_penya, data['actas'], equipo_seleccionado=equipo_objetivo
             )
         except Exception as e2:
-            # Si todo falla, mostrar error
             st.error(f"Error al calcular goles en contra: {e2}")
             goles_recibidos = 0
-    
-    # Mostrar métricas de resumen en una sola fila con 5 columnas
+
+    # Métricas resumen
     col1, col2, col3, col4, col5 = st.columns(5)
-    
     with col1:
         st.metric("Partidos Jugados", estadisticas_equipo['partidos_jugados'])
-    
     with col2:
         st.metric("Goles Marcados", estadisticas_equipo['goles_marcados'])
-    
     with col3:
         st.metric("Goles Recibidos", goles_recibidos)
-    
     with col4:
         st.metric("Tarjetas Amarillas", estadisticas_equipo['tarjetas_amarillas'])
-    
     with col5:
         st.metric("Tarjetas Rojas", estadisticas_equipo['tarjetas_rojas'])
     
-    # Espacio para separar secciones
     st.markdown("---")
-    
-    # Dividir en dos columnas
+
+    # Visualizaciones
     col1, col2 = st.columns(2)
-    
     with col1:
-        # Top 5 goleadores
-        top_goleadores = obtener_top_goleadores(data['actas_penya'], top_n=5)
+        top_goleadores = obtener_top_goleadores(actas_penya, top_n=5)
         graficar_top_goleadores_home(top_goleadores)
-    
     with col2:
-        # Top 5 jugadores con más tarjetas
-        top_amonestados = obtener_top_amonestados(data['actas_penya'], top_n=5)
+        top_amonestados = obtener_top_amonestados(actas_penya, top_n=5)
         graficar_top_amonestados_home(top_amonestados)
     
-    # Nueva fila para más estadísticas
     col1, col2 = st.columns(2)
-    
     with col1:
-        # Top 5 jugadores con más minutos (barras negras)
-        top_minutos = obtener_jugadores_mas_minutos(data['actas_penya'], top_n=5)
+        top_minutos = obtener_jugadores_mas_minutos(actas_penya, top_n=5)
         graficar_minutos_jugados_home(top_minutos)
-    
     with col2:
-        # Información sobre navegación
         st.info(
             """
             Este dashboard muestra un resumen general del equipo Penya Independent.
@@ -134,9 +123,9 @@ def main():
             """
         )
     
-    # Nota informativa al final
     st.markdown("---")
     st.caption("Datos actualizados. Dashboard desarrollado con Streamlit.")
+
 
 if __name__ == "__main__":
     # Crear el menú de navegación

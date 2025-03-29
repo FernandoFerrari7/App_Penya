@@ -60,6 +60,10 @@ def mostrar_tarjeta_metrica_compacta(titulo, valor, valor_referencia=None, color
         elif titulo == "Goles en contra" and valor <= valor_referencia:
             color_valor = "#4CAF50"  # Verde (por debajo de la media, es bueno)
     
+    # Mantener color negro para "Num. Jugadores" independientemente de la comparación
+    if titulo == "Num. Jugadores":
+        color_valor = "#000000"
+        
     # Aplicar estilos CSS más compactos
     st.markdown(
         f"""
@@ -167,14 +171,15 @@ def main():
         (datos_equipo['partidos_penya']['link_acta'] != '')
     ].shape[0]
     
-    # Calcular métricas avanzadas, pasando el equipo seleccionado
+    # Calcular métricas avanzadas, pasando el equipo seleccionado y las medias precalculadas
     try:
         metricas_avanzadas = calcular_metricas_avanzadas(
             datos_equipo['partidos_penya'], 
             datos_equipo['goles_penya'], 
             datos_equipo['actas_penya'], 
             datos_equipo['actas'],
-            equipo_seleccionado  # Pasar el equipo seleccionado como parámetro
+            equipo_seleccionado,  # Pasar el equipo seleccionado como parámetro
+            data['medias_liga']   # Pasar las medias precalculadas
         )
         
         # Actualizar métricas con datos calculados dinámicamente
@@ -241,46 +246,46 @@ def main():
             {
                 'titulo': 'Num. Jugadores',
                 'valor': datos_equipo['actas_penya']['jugador'].nunique(),
-                'referencia': 27.7,
+                'referencia': data['medias_liga']['ref_num_jugadores'],
                 'color': PENYA_SECONDARY_COLOR
             },
             {
                 'titulo': 'Goles a favor',
                 'valor': len(datos_equipo['goles_penya']),
-                'referencia': 28,
+                'referencia': data['medias_liga']['ref_goles_favor'],
                 'color': '#FF8C00'  # Se determinará dinámicamente
             },
             {
                 'titulo': 'Goles en contra',
                 'valor': calcular_goles_contra(datos_equipo['actas_penya'], datos_equipo['partidos_penya'], 
                                              datos_equipo['actas'], equipo_seleccionado),
-                'referencia': 30,  # Media de la liga
+                'referencia': data['medias_liga']['ref_goles_contra'],  # Usar media precalculada
                 'color': '#FF4136'  # Se determinará dinámicamente
             },
             {
                 'titulo': 'Tarjetas Amarillas',
                 'valor': datos_equipo['actas_penya']['Tarjetas Amarillas'].sum(),
-                'referencia': 42,
+                'referencia': data['medias_liga']['ref_tarjetas_amarillas'],  # Usar media precalculada
                 'color': '#FFD700'  # Amarillo
             },
             {
                 'titulo': 'TA Rival',
                 'valor': calcular_tarjetas_rivales(datos_equipo['actas'], datos_equipo['partidos_penya'], 
                                                 equipo_seleccionado)['amarillas'],
-                'referencia': 45,  # Media de la liga
+                'referencia': data['medias_liga']['ref_ta_rival'],  # Usar media precalculada
                 'color': '#FFD700'  # Amarillo
             },
             {
                 'titulo': 'Tarjetas Rojas',
                 'valor': datos_equipo['actas_penya']['Tarjetas Rojas'].sum(),
-                'referencia': 1.6,
+                'referencia': data['medias_liga']['ref_tarjetas_rojas'],  # Usar media precalculada 
                 'color': '#FF4136'  # Rojo
             },
             {
                 'titulo': 'TR Rival',
                 'valor': calcular_tarjetas_rivales(datos_equipo['actas'], datos_equipo['partidos_penya'], 
                                                equipo_seleccionado)['rojas'],
-                'referencia': 1.8,  # Media de la liga
+                'referencia': data['medias_liga']['ref_tr_rival'],  # Usar media precalculada
                 'color': '#FF4136'  # Rojo
             }
         ]
