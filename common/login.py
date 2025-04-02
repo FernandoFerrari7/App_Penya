@@ -1,68 +1,111 @@
+"""
+Módulo para el sistema de login de la aplicación Penya Independent
+"""
 import streamlit as st
 import pandas as pd
 import os
-import common.menu as menu
 
-# Validación simple de usuario y clave con un archivo csv
-
-def validarUsuario(usuario, clave):    
-    """Permite la validación de usuario y clave
-
+def validar_usuario(usuario, clave):
+    """
+    Valida el usuario y clave contra el archivo usuarios.csv
+    
     Args:
-        usuario (str): usuario a validar
-        clave (str): clave del usuario
-
+        usuario (str): Usuario a validar
+        clave (str): Clave del usuario
+    
     Returns:
-        bool: True usuario valido, False usuario invalido
-    """    
-    # Construir la ruta relativa al archivo usuarios.csv desde el archivo login.py
-    csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'usuarios.csv')
-
-    # Convertir a ruta absoluta
-    csv_path = os.path.abspath(csv_path)
-
-    # Imprimir la ruta para depuración
-    # st.write(f"Ruta construida para el CSV: {csv_path}")
-
-    # Verificar si la ruta existe
+        tuple: (es_valido, rol) - (True, rol) si es válido, (False, None) si no lo es
+    """
+    # Construir la ruta al archivo usuarios.csv
+    csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'usuarios.csv')
+    
+    # Verificar si el archivo existe
     if not os.path.exists(csv_path):
-        st.error(f"El archivo no se encuentra en la ruta especificada: {csv_path}")
-        return False
-
-    # Leer el archivo CSV
+        st.error(f"El archivo de usuarios no se encuentra en: {csv_path}")
+        return False, None
+    
     try:
-        dfusuarios = pd.read_csv(csv_path)
+        # Leer el archivo CSV
+        df_usuarios = pd.read_csv(csv_path)
+        
+        # Validar el usuario y la clave
+        usuario_valido = df_usuarios[(df_usuarios['usuario'] == usuario) & 
+                                    (df_usuarios['clave'] == clave)]
+        
+        if not usuario_valido.empty:
+            # Si encontramos el usuario, también guardamos su rol
+            rol = usuario_valido.iloc[0]['rol'] if 'rol' in usuario_valido.columns else 'usuario'
+            return True, rol
+        else:
+            return False, None
+            
     except Exception as e:
-        st.error(f"Error al intentar leer el archivo CSV: {e}")
-        return False
+        st.error(f"Error al leer el archivo de usuarios: {e}")
+        return False, None
 
-    # Validación del usuario y la clave
-    if len(dfusuarios[(dfusuarios['usuario'] == usuario) & (dfusuarios['clave'] == clave)]) > 0:
+def mostrar_login():
+    """
+    Muestra el formulario de login y maneja la autenticación
+    
+    Returns:
+        bool: True si el usuario está autenticado, False si no lo está
+    """
+    # Si el usuario ya está autenticado, retornamos True
+    if 'usuario_autenticado' in st.session_state and st.session_state.usuario_autenticado:
         return True
-    else:
-        return False
-
-
-
-def generarLogin():
-    """Genera la ventana de login o muestra el menú si el login es valido
-    """    
-    # Validamos si el usuario ya fue ingresado    
-    if 'usuario' in st.session_state:
-        menu.generarMenu(st.session_state['usuario']) # Si ya hay usuario cargamos el menu        
-    else: 
-        # Cargamos el formulario de login       
-        with st.form('frmLogin'):
-            parUsuario = st.text_input('Usuario')
-            parPassword = st.text_input('Password',type='password')
-            btnLogin=st.form_submit_button('Ingresar',type='primary')
-            if btnLogin:
-                if validarUsuario(parUsuario,parPassword):
-                    st.session_state['usuario'] =parUsuario
-                    # Si el usuario es correcto reiniciamos la app para que se cargue el menú
-                    st.rerun()
+    
+    # Configuramos el diseño de la página de login
+    st.markdown("<h1 style='text-align: center;'>⚽ Penya Independent</h1>", unsafe_allow_html=True)
+    
+    # Centramos el formulario
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        # Añadimos logo si existe
+        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'logo_penya.png')
+        if os.path.exists(logo_path):
+            st.image(logo_path, width=150)
+        
+        # Formulario de login
+        with st.form("formulario_login"):
+            st.subheader("Iniciar Sesión")
+            usuario = st.text_input("Usuario")
+            clave = st.text_input("Contraseña", type="password")
+            boton_login = st.form_submit_button("Iniciar Sesión", use_container_width=True)
+            
+            if boton_login:
+                if usuario and clave:  # Verificamos que no estén vacíos
+                    es_valido, rol = validar_usuario(usuario, clave)
+                    if es_valido:
+                        # Guardamos los datos en session_state
+                        st.session_state.usuario_autenticado = True
+                        st.session_state.nombre_usuario = usuario
+                        st.session_state.rol_usuario = rol
+                        st.rerun()  # Recargamos la página
+                    else:
+                        st.error("Usuario o contraseña incorrectos")
                 else:
-                    # Si el usuario es invalido, mostramos el mensaje de error
-                    st.error("Usuario o clave inválidos",icon=":material/gpp_maybe:")        
+                    st.warning("Por favor, ingresa tu usuario y contraseña")
+    
+    return False
 
-                                
+def cerrar_sesion():
+    """
+    Cierra la sesión del usuario
+    """
+    for key in ['usuario_autenticado', 'nombre_usuario', 'rol_usuario', 'pagina_actual']:
+        if key in st.session_state:
+            del st.session_state[key]
+    
+    st.rerun()  # Recargamos la página
+
+def mostrar_info_usuario():
+    """
+    Muestra la información del usuario y el botón de cierre de sesión
+    """
+    if 'usuario_autenticado' in st.session_state and st.session_state.usuario_autenticado:
+        col1, col2 = st.columns([8, 2])
+        with col2:
+            st.write(f"Usuario: **{st.session_state.nombre_usuario}**")
+            if st.button("Cerrar Sesión", key="btn_logout", type="primary", use_container_width=True):
+                cerrar_sesion()

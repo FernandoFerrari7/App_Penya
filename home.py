@@ -5,13 +5,15 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import re
 
 # Importar módulos propios
 from utils.data import cargar_datos
-from utils.ui import page_config  # Solo importar page_config
+from utils.ui import page_config
 from common.menu import crear_menu, mostrar_pagina_actual
 from calculos.calculo_equipo import calcular_estadisticas_generales, calcular_metricas_avanzadas, calcular_goles_contra
 from calculos.calculo_jugadores import obtener_top_goleadores, obtener_top_amonestados, obtener_jugadores_mas_minutos
+from utils.pdf_export import show_download_button
 
 # Importar funciones de visualización especiales para la página Home
 from visualizaciones.jugadores_home import (
@@ -20,14 +22,6 @@ from visualizaciones.jugadores_home import (
     graficar_minutos_jugados_home
 )
 
-# Configurar la página
-page_config()
-
-# Cargar datos
-data = cargar_datos()
-
-import re
-
 def normalizar_nombre_equipo(nombre):
     if pd.isna(nombre):
         return ""
@@ -35,8 +29,11 @@ def normalizar_nombre_equipo(nombre):
     nombre = re.sub(r'\s+', '', nombre)  # Elimina todos los espacios internos
     return nombre.upper().strip()
 
-def main():
-    """Función principal que muestra el dashboard"""
+def dashboard_principal():
+    """Función que muestra el dashboard principal"""
+    
+    # Cargar datos
+    data = cargar_datos()
     
     equipo_objetivo = "PENYA INDEPENDENT A"
     equipo_normalizado = normalizar_nombre_equipo(equipo_objetivo)
@@ -59,6 +56,18 @@ def main():
     with c3:
         st.write("")
         st.image("assets/logo_ffib.png", width=140)
+    
+    # Agregar botón de exportación a PDF
+    c1, c2, c3 = st.columns([6, 2, 6])
+    with c2:
+        # Crear un diccionario con los datos filtrados
+        datos_filtrados = {
+            'actas_penya': actas_penya,
+            'goles_penya': goles_penya,
+            'partidos_penya': partidos_penya,
+            'actas': data['actas']  # Datos completos necesarios para cálculos
+        }
+        show_download_button(datos_filtrados, 'home')
     
     st.markdown("---")
     
@@ -126,15 +135,26 @@ def main():
     st.markdown("---")
     st.caption("Datos actualizados. Dashboard desarrollado con Streamlit.")
 
-
-if __name__ == "__main__":
+def main():
+    """Función principal que muestra el dashboard"""
+    
     # Crear el menú de navegación
     pagina_seleccionada = crear_menu()
     
     # Mostrar la página correspondiente
     if pagina_seleccionada == "Inicio":
-        main()
+        dashboard_principal()
     else:
         mostrar_pagina_actual()
+
+
+if __name__ == "__main__":
+    # Configurar la página
+    page_config()
+    
+    # Ejecutar la función principal
+    main()
+
+
 
 
