@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 # Importar módulos propios
 from utils.data import cargar_datos
 from utils.ui import page_config  # Solo importar page_config
+from utils.pdf_export import show_download_button  # Añadir importación
 from calculos.calculo_equipo import (
     obtener_rivales_con_goles, 
     analizar_tarjetas_por_jornada, 
@@ -148,6 +149,9 @@ def filtrar_datos_equipo(data, equipo_seleccionado):
 def main():
     """Función principal que muestra el análisis de equipos"""
     
+    # Título de la página
+    st.title("Análisis de Equipos")
+    
     # Obtener lista de equipos disponibles
     equipos_disponibles = sorted(data['actas']['equipo'].unique())
     
@@ -161,6 +165,12 @@ def main():
         index=equipos_disponibles.index(equipo_default),
         format_func=lambda x: x.strip()
     )
+    
+    # Botón de descarga PDF
+    st.markdown("---")
+    if equipo_seleccionado:  # Solo mostrar el botón si hay un equipo seleccionado
+        show_download_button(data=data, page_type='equipo', equipo_seleccionado=equipo_seleccionado.strip())
+    st.markdown("---")
     
     # Filtrar los datos para el equipo seleccionado
     datos_equipo = filtrar_datos_equipo(data, equipo_seleccionado)
