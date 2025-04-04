@@ -35,16 +35,18 @@ def mostrar_resumen_equipo(estadisticas):
     # Mostrar promedio de goles por partido
     st.metric("Promedio Goles/Partido", estadisticas['promedio_goles'])
 
-def graficar_tarjetas_por_jornada(tarjetas_df):
+def graficar_tarjetas_por_jornada(tarjetas_df, return_fig=False):
     """
     Crea un gráfico de tarjetas por jornada
     
     Args:
         tarjetas_df: DataFrame con tarjetas por jornada
+        return_fig: Si es True, devuelve la figura en lugar de mostrarla
     """
     if tarjetas_df.empty:
-        st.warning("No hay datos de tarjetas por jornada")
-        return
+        if not return_fig:
+            st.warning("No hay datos de tarjetas por jornada")
+        return None
     
     # Crear gráfico de líneas
     fig = go.Figure()
@@ -53,27 +55,25 @@ def graficar_tarjetas_por_jornada(tarjetas_df):
     fig.add_trace(go.Scatter(
         x=tarjetas_df['jornada'],
         y=tarjetas_df['Tarjetas Amarillas'],
-        mode='lines+markers',
         name='Amarillas',
-        line=dict(color=COLOR_TARJETAS_AMARILLAS, width=2),
-        marker=dict(size=8)
+        line=dict(color='#FFD700', width=2),
+        mode='lines+markers'
     ))
     
     # Añadir línea para tarjetas rojas
     fig.add_trace(go.Scatter(
         x=tarjetas_df['jornada'],
         y=tarjetas_df['Tarjetas Rojas'],
-        mode='lines+markers',
         name='Rojas',
-        line=dict(color=COLOR_TARJETAS_ROJAS, width=2),
-        marker=dict(size=8)
+        line=dict(color='#FF4136', width=2),
+        mode='lines+markers'
     ))
     
-    # Personalizar el gráfico
+    # Personalizar el diseño
     fig.update_layout(
-        title='Tarjetas por Jornada',
         xaxis_title='Jornada',
         yaxis_title='Número de Tarjetas',
+        margin=dict(l=10, r=10, t=10, b=10),  # Márgenes más pequeños para PDF
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -88,31 +88,34 @@ def graficar_tarjetas_por_jornada(tarjetas_df):
         hovertemplate='<b>Jornada %{x}</b><br>Tarjetas: %{y}<extra></extra>'
     )
     
+    if return_fig:
+        return fig
+        
     # Mostrar el gráfico
     st.plotly_chart(fig, use_container_width=True)
 
-def graficar_goles_por_tiempo(goles_por_tiempo):
+def graficar_goles_por_tiempo(goles_por_tiempo, return_fig=False):
     """
     Crea un gráfico de distribución de goles por minuto
     
     Args:
         goles_por_tiempo: Series con distribución de goles por rango de minutos
+        return_fig: Si es True, devuelve la figura en lugar de mostrarla
     """
     if goles_por_tiempo.empty:
-        st.warning("No hay datos de goles por tiempo")
-        return
+        if not return_fig:
+            st.warning("No hay datos de goles por tiempo")
+        return None
     
     # Convertir a DataFrame para usar con Plotly
     df = goles_por_tiempo.reset_index()
     df.columns = ['Rango', 'Goles']
     
-    # Crear gráfico de barras con el color del Penya
+    # Crear gráfico de barras
     fig = px.bar(
         df,
         x='Rango',
         y='Goles',
-        title='Distribución de Goles por Minuto',
-        labels={'Rango': 'Rango de Minutos', 'Goles': 'Número de Goles'},
         color_discrete_sequence=[PENYA_PRIMARY_COLOR]  # Color naranja del Penya
     )
     
@@ -120,7 +123,8 @@ def graficar_goles_por_tiempo(goles_por_tiempo):
     fig.update_layout(
         xaxis_title='Rango de Minutos',
         yaxis_title='Número de Goles',
-        showlegend=False
+        showlegend=False,
+        margin=dict(l=10, r=10, t=10, b=10)  # Márgenes más pequeños para PDF
     )
     
     # Personalizar tooltip
@@ -128,19 +132,24 @@ def graficar_goles_por_tiempo(goles_por_tiempo):
         hovertemplate='<b>%{x}</b><br>Goles: %{y}<extra></extra>'
     )
     
+    if return_fig:
+        return fig
+        
     # Mostrar el gráfico
     st.plotly_chart(fig, use_container_width=True)
 
-def graficar_tipos_goles(tipos_goles):
+def graficar_tipos_goles(tipos_goles, return_fig=False):
     """
     Crea un gráfico de tipos de goles marcados
     
     Args:
         tipos_goles: Series con conteo de tipos de goles
+        return_fig: Si es True, devuelve la figura en lugar de mostrarla
     """
     if tipos_goles.empty:
-        st.warning("No hay datos de tipos de goles")
-        return
+        if not return_fig:
+            st.warning("No hay datos de tipos de goles")
+        return None
     
     # Convertir a DataFrame para usar con Plotly
     df = tipos_goles.reset_index()
@@ -151,7 +160,6 @@ def graficar_tipos_goles(tipos_goles):
         df,
         values='Cantidad',
         names='Tipo',
-        title='Tipos de Goles Marcados',
         color_discrete_sequence=[PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, "#555555", "#777777"]
     )
     
@@ -163,6 +171,14 @@ def graficar_tipos_goles(tipos_goles):
         hovertemplate='<b>%{label}</b><br>Cantidad: %{value}<br>(%{percent})<extra></extra>'
     )
     
+    fig.update_layout(
+        margin=dict(l=10, r=10, t=10, b=10),  # Márgenes más pequeños para PDF
+        showlegend=False
+    )
+    
+    if return_fig:
+        return fig
+        
     # Mostrar el gráfico
     st.plotly_chart(fig, use_container_width=True)
 

@@ -4,6 +4,12 @@ Módulo para el sistema de login de la aplicación Penya Independent
 import streamlit as st
 import pandas as pd
 import os
+from base64 import b64encode
+
+def get_image_base64(image_path):
+    with open(image_path, "rb") as image_file:
+        encoded_string = b64encode(image_file.read()).decode('utf-8')
+        return encoded_string
 
 def validar_usuario(usuario, clave):
     """
@@ -54,38 +60,39 @@ def mostrar_login():
     if 'usuario_autenticado' in st.session_state and st.session_state.usuario_autenticado:
         return True
     
-    # Configuramos el diseño de la página de login
-    st.markdown("<h1 style='text-align: center;'>⚽ Penya Independent</h1>", unsafe_allow_html=True)
-    
-    # Centramos el formulario
+    # Centramos todo el contenido
     col1, col2, col3 = st.columns([1, 2, 1])
     
     with col2:
-        # Añadimos logo si existe
-        logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'logo_penya.png')
-        if os.path.exists(logo_path):
-            st.image(logo_path, width=150)
+        # Primera fila con los logos
+        st.markdown("""
+            <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;'>
+                <div style='display: flex; align-items: center; transform: scale(1.2); transform-origin: left center;'>
+                    <span style='font-size: 38px; margin-right: 10px;'>⚽</span>
+                    <span style='font-size: 42px; font-weight: bold;'>Penya Independent</span>
+                </div>
+                <img src='data:image/png;base64,{}' style='width: 100px;'>
+            </div>
+        """.format(get_image_base64(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'assets', 'logo_penya.png'))), unsafe_allow_html=True)
         
         # Formulario de login
-        with st.form("formulario_login"):
-            st.subheader("Iniciar Sesión")
-            usuario = st.text_input("Usuario")
-            clave = st.text_input("Contraseña", type="password")
-            boton_login = st.form_submit_button("Iniciar Sesión", use_container_width=True)
-            
-            if boton_login:
-                if usuario and clave:  # Verificamos que no estén vacíos
-                    es_valido, rol = validar_usuario(usuario, clave)
-                    if es_valido:
-                        # Guardamos los datos en session_state
-                        st.session_state.usuario_autenticado = True
-                        st.session_state.nombre_usuario = usuario
-                        st.session_state.rol_usuario = rol
-                        st.rerun()  # Recargamos la página
-                    else:
-                        st.error("Usuario o contraseña incorrectos")
+        st.subheader("Iniciar Sesión")
+        usuario = st.text_input("Usuario")
+        clave = st.text_input("Contraseña", type="password")
+        
+        if st.button("Iniciar Sesión", use_container_width=True):
+            if usuario and clave:  # Verificamos que no estén vacíos
+                es_valido, rol = validar_usuario(usuario, clave)
+                if es_valido:
+                    # Guardamos los datos en session_state
+                    st.session_state.usuario_autenticado = True
+                    st.session_state.nombre_usuario = usuario
+                    st.session_state.rol_usuario = rol
+                    st.rerun()  # Recargamos la página
                 else:
-                    st.warning("Por favor, ingresa tu usuario y contraseña")
+                    st.error("Usuario o contraseña incorrectos")
+            else:
+                st.warning("Por favor, ingresa tu usuario y contraseña")
     
     return False
 

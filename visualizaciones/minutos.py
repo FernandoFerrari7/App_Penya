@@ -8,26 +8,28 @@ import plotly.express as px
 import plotly.graph_objects as go
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR
 
-def graficar_minutos_por_jugador(minutos_df, top_n=15):
+def graficar_minutos_por_jugador(minutos_df, top_n=15, return_fig=False):
     """
     Crea un gráfico de barras con los minutos jugados por cada jugador
     
     Args:
         minutos_df: DataFrame con minutos por jugador
         top_n: Número de jugadores a mostrar
+        return_fig: Si es True, devuelve la figura en lugar de mostrarla
     """
     if minutos_df.empty:
-        st.warning("No hay datos de minutos por jugador")
-        return
+        if not return_fig:
+            st.warning("No hay datos de minutos por jugador")
+        return None
     
     # Limitar a los top_n jugadores
     df = minutos_df.head(top_n).copy()
     
-    # Crear gráfico de barras horizontales
+    # Crear gráfico de barras
     fig = px.bar(
         df,
-        y='jugador',
         x='minutos_totales',
+        y='jugador',
         orientation='h',
         title=f'Top {top_n} Jugadores por Minutos Jugados',
         labels={'jugador': 'Jugador', 'minutos_totales': 'Minutos Jugados'},
@@ -40,7 +42,8 @@ def graficar_minutos_por_jugador(minutos_df, top_n=15):
         xaxis_title='Minutos Jugados',
         yaxis_title='',
         showlegend=False,
-        height=600
+        height=400 if return_fig else 600,  # Altura más compacta para PDF
+        margin=dict(l=10, r=10, t=10, b=10)  # Márgenes más pequeños para PDF
     )
     
     # Personalizar tooltip
@@ -48,6 +51,9 @@ def graficar_minutos_por_jugador(minutos_df, top_n=15):
         hovertemplate='<b>%{y}</b><br>Minutos: %{x}<extra></extra>'
     )
     
+    if return_fig:
+        return fig
+        
     # Mostrar el gráfico
     st.plotly_chart(fig, use_container_width=True)
 

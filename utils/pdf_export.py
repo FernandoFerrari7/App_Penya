@@ -12,22 +12,30 @@ from pathlib import Path
 import time
 from PIL import Image
 import io
+from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, COLOR_TARJETAS_AMARILLAS, COLOR_TARJETAS_ROJAS
+from calculos.calculo_minutos import obtener_minutos_por_jornada
+from visualizaciones.minutos import graficar_minutos_por_jugador
+from visualizaciones.jugadores import graficar_minutos_por_jornada, graficar_goles_por_tiempo, graficar_tarjetas_por_jornada
 
 class PenyaPDF(FPDF):
-    """Clase personalizada de PDF para Penya Independent"""
-    
-    def __init__(self, title="Penya Independent - Análisis de Rendimiento", *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    """
+    Clase personalizada para generar PDFs con el estilo de Penya Independent
+    """
+    def __init__(self, title="Análisis Penya Independent"):
+        super().__init__()
         self.title = title
         self.add_page()
+        self.set_font('Arial', '', 12)
         
     def header(self):
-        """Configurar el encabezado de cada página"""
+        """
+        Encabezado del PDF con logos y título
+        """
         try:
             # Obtener la ruta base del proyecto
             base_path = Path(__file__).parent.parent
             
-            # Construir rutas absolutas a los logos
+            # Construir rutas absolutas para los logos
             penya_logo = base_path / "assets" / "logo_penya.png"
             ffib_logo = base_path / "assets" / "logo_ffib.png"
             
@@ -76,7 +84,7 @@ class PenyaPDF(FPDF):
                 except Exception as e:
                     print(f"Error al procesar logo_ffib.png: {e}")
                 
-            # Título centrado entre los logos
+            # Título centrado
             self.set_font('Arial', 'B', 15)
             self.set_xy(35, 8)
             self.cell(140, 10, self.title, 0, 1, 'C')
@@ -96,264 +104,417 @@ class PenyaPDF(FPDF):
         self.set_font('Arial', 'I', 8)
         self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
 
-    def add_metrics_row(self, metrics, y_position=None):
-        """Añade una fila de métricas en disposición horizontal"""
-        if y_position:
-            self.set_y(y_position)
-            
-        # Calcular el ancho disponible y el ancho por métrica
-        page_width = 190
-        metric_width = page_width / len(metrics)
+    def add_metrics_row(self, metrics):
+        """
+        Añade una fila de métricas al PDF
         
-        self.set_font('Arial', 'B', 11)
+        Args:
+            metrics: Lista de tuplas (título, valor)
+        """
+        # Calcular ancho de cada métrica
+        metric_width = 190 / len(metrics)
+        
+        # Añadir cada métrica
         for title, value in metrics:
-            # Crear un rectángulo con borde suave
-            x = self.get_x()
-            y = self.get_y()
-            
-            # Título centrado arriba
-            self.set_font('Arial', '', 9)
-            self.set_xy(x, y)
+            # Título
+            self.set_font('Arial', '', 10)
             self.cell(metric_width, 6, title, 0, 0, 'C')
-            
-            # Valor en negrita abajo
-            self.set_font('Arial', 'B', 12)
-            self.set_xy(x, y + 6)
-            self.cell(metric_width, 8, str(value), 0, 0, 'C')
-            
-            # Mover a la siguiente posición
-            self.set_xy(x + metric_width, y)
-            
-        self.ln(16)  # Espacio después de la fila de métricas
+        self.ln()
         
-    def add_plot(self, fig, x=None, y=None, w=None):
-        """Añade un gráfico matplotlib al PDF"""
+        # Valores
+        for title, value in metrics:
+            self.set_font('Arial', 'B', 14)
+            self.cell(metric_width, 8, str(value), 0, 0, 'C')
+        self.ln(15)
+    
+    def add_plot(self, fig, x=10, y=None, w=None, h=None):
+        """
+        Añade un gráfico al PDF, soporta tanto figuras de matplotlib como de plotly
+        
+        Args:
+            fig: Figura (matplotlib o plotly)
+            x: Posición x
+            y: Posición y (opcional)
+            w: Ancho (opcional)
+            h: Alto (opcional, se calcula automáticamente si no se especifica)
+        """
+        # Si la figura es None, no hacer nada
+        if fig is None:
+            return
+        
         try:
-            # Crear un nombre único para el archivo temporal
-            temp_filename = f'plot_{time.time_ns()}.png'
-            temp_path = os.path.join(tempfile.gettempdir(), temp_filename)
+            import tempfile
+            import os
             
-            # Guardar la figura
-            fig.savefig(temp_path, bbox_inches='tight', dpi=300, facecolor='white')
-            plt.close(fig)  # Cerrar la figura inmediatamente
+            # Crear un archivo temporal
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.png')
+            os.close(temp_fd)
             
-            # Si no se especifica el ancho, usar un tercio del ancho de página
-            if w is None:
-                w = 63  # Un tercio de 190
-            
-            # Calcular posición si no se especifica
-            if x is None and y is None:  # Usar posición actual
-                x = self.get_x()
-                y = self.get_y()
-            
-            # Añadir la imagen al PDF
-            self.image(temp_path, x=x, y=y, w=w)
-            
-            # Intentar eliminar el archivo temporal
             try:
-                os.unlink(temp_path)
-            except Exception as e:
-                print(f"No se pudo eliminar el archivo temporal {temp_path}: {e}")
+                # Detectar el tipo de figura y guardarla apropiadamente
+                if 'plotly' in str(type(fig)):
+                    # Es una figura de Plotly
+                    fig.write_image(temp_path, format="png")
+                else:
+                    # Es una figura de matplotlib
+                    fig.savefig(temp_path, format='png', bbox_inches='tight', dpi=300)
+                    plt.close(fig)
                 
+                # Abrir la imagen para obtener sus dimensiones
+                img = Image.open(temp_path)
+                
+                # Si no se especifica el alto, calcularlo manteniendo la proporción
+                if h is None and w is not None:
+                    aspect_ratio = img.height / img.width
+                    h = w * aspect_ratio
+                
+                # Añadir la imagen al PDF
+                if y is None:
+                    y = self.get_y()
+                self.image(temp_path, x=x, y=y, w=w, h=h)
+                
+                # Actualizar la posición Y
+                if h:
+                    self.set_y(y + h + 5)
+                
+            finally:
+                # Limpiar: cerrar la imagen y eliminar el archivo temporal
+                try:
+                    img.close()
+                except:
+                    pass
+                try:
+                    os.unlink(temp_path)
+                except:
+                    pass
+            
         except Exception as e:
-            print(f"Error al añadir gráfico al PDF: {e}")
+            print(f"Error al añadir gráfico al PDF: {str(e)}")
+            # No levantar la excepción para continuar con el resto del PDF
+            pass
 
 
 def generate_home_pdf(data):
-    from calculos.calculo_equipo import calcular_estadisticas_generales, calcular_metricas_avanzadas, calcular_goles_contra
-    from calculos.calculo_jugadores import obtener_top_goleadores, obtener_top_amonestados, obtener_jugadores_mas_minutos
-    from visualizaciones.jugadores_home import graficar_top_goleadores_home, graficar_top_amonestados_home, graficar_minutos_jugados_home
-
-    # Inicializar PDF
-    pdf = PenyaPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-
-    # Preparar datos
-    actas_penya = data['actas_penya']
-    goles_penya = data['goles_penya']
-    partidos_penya = data['partidos_penya']
-    actas_completas = data['actas']
-
-    # Calcular estadísticas
-    estadisticas = calcular_estadisticas_generales(
-        actas_penya, 
-        goles_penya, 
-        partidos_penya, 
-        equipo_seleccionado="PENYA INDEPENDENT A"
-    )
-
-    # Calcular goles recibidos
+    """
+    Genera un PDF con el análisis general del equipo
+    """
     try:
-        metricas_avanzadas = calcular_metricas_avanzadas(
-            partidos_penya, goles_penya, actas_penya, actas_completas,
-            equipo_seleccionado="PENYA INDEPENDENT A"
+        from calculos.calculo_equipo import calcular_estadisticas_generales
+        from calculos.calculo_jugadores import (
+            obtener_top_goleadores,
+            obtener_top_amonestados,
+            obtener_jugadores_mas_minutos
         )
-        goles_recibidos = metricas_avanzadas['goles'][1]['valor']
-    except Exception:
-        try:
-            goles_recibidos = calcular_goles_contra(
-                actas_penya, partidos_penya, actas_completas,
-                equipo_seleccionado="PENYA INDEPENDENT A"
-            )
-        except Exception as e:
-            print(f"Error al calcular goles en contra: {e}")
-            goles_recibidos = "-"
+        from visualizaciones.jugadores_home import (
+            graficar_top_goleadores_home,
+            graficar_top_amonestados_home,
+            graficar_minutos_jugados_home
+        )
 
-    # Añadir métricas en dos filas
-    pdf.set_y(30)
-    pdf.add_metrics_row([
-        ("PARTIDOS JUGADOS", estadisticas['partidos_jugados']),
-        ("GOLES MARCADOS", estadisticas['goles_marcados']),
-        ("GOLES RECIBIDOS", goles_recibidos)
-    ])
-    
-    pdf.add_metrics_row([
-        ("TARJETAS AMARILLAS", estadisticas['tarjetas_amarillas']),
-        ("TARJETAS ROJAS", estadisticas['tarjetas_rojas']),
-        ("", "")  # Espacio vacío para alineación
-    ])
+        # Inicializar PDF
+        pdf = PenyaPDF(title="Análisis General - Penya Independent")
+        pdf.set_auto_page_break(auto=True, margin=15)
 
-    # Título de la sección de gráficos
-    pdf.ln(5)
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, "Análisis de Jugadores", 0, 1, 'L')
-    pdf.ln(2)
+        # Calcular estadísticas generales
+        estadisticas = calcular_estadisticas_generales(
+            data['actas_penya'],
+            data['goles_penya'],
+            data['partidos_penya'],
+            "PENYA INDEPENDENT"
+        )
 
-    # Preparar y añadir los tres gráficos en una fila
-    current_y = pdf.get_y()
-    
-    # Gráfico de goleadores
-    top_goleadores = obtener_top_goleadores(actas_penya, top_n=5)
-    fig_goleadores = graficar_top_goleadores_home(top_goleadores, return_fig=True)
-    if fig_goleadores:
-        pdf.add_plot(fig_goleadores, x=10, y=current_y)
+        # Añadir métricas básicas
+        metricas = [
+            ('Partidos Jugados', estadisticas['partidos_jugados']),
+            ('Goles Marcados', estadisticas['goles_marcados']),
+            ('Tarjetas Amarillas', estadisticas['tarjetas_amarillas']),
+            ('Tarjetas Rojas', estadisticas['tarjetas_rojas'])
+        ]
+        pdf.add_metrics_row(metricas)
 
-    # Gráfico de amonestados
-    top_amonestados = obtener_top_amonestados(actas_penya, top_n=5)
-    fig_amonestados = graficar_top_amonestados_home(top_amonestados, return_fig=True)
-    if fig_amonestados:
-        pdf.add_plot(fig_amonestados, x=73, y=current_y)
+        # Título de la sección de jugadores
+        pdf.ln(5)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 10, "Análisis de Jugadores", 0, 1, 'L')
+        pdf.ln(2)
 
-    # Gráfico de minutos jugados
-    top_minutos = obtener_jugadores_mas_minutos(actas_penya, top_n=5)
-    fig_minutos = graficar_minutos_jugados_home(top_minutos, return_fig=True)
-    if fig_minutos:
-        pdf.add_plot(fig_minutos, x=136, y=current_y)
+        # Preparar y añadir los gráficos
+        current_y = pdf.get_y()
 
-    return pdf
+        # Gráfico de goleadores
+        top_goleadores = obtener_top_goleadores(data['actas_penya'], top_n=5)
+        if not top_goleadores.empty:
+            fig_goleadores = graficar_top_goleadores_home(top_goleadores, return_fig=True)
+            if fig_goleadores:
+                pdf.add_plot(fig_goleadores, x=10, y=current_y, w=60)
+
+        # Gráfico de amonestados
+        top_amonestados = obtener_top_amonestados(data['actas_penya'], top_n=5)
+        if not top_amonestados.empty:
+            fig_amonestados = graficar_top_amonestados_home(top_amonestados, return_fig=True)
+            if fig_amonestados:
+                pdf.add_plot(fig_amonestados, x=75, y=current_y, w=60)
+
+        # Gráfico de minutos jugados
+        top_minutos = obtener_jugadores_mas_minutos(data['actas_penya'], top_n=5)
+        if not top_minutos.empty:
+            fig_minutos = graficar_minutos_jugados_home(top_minutos, return_fig=True)
+            if fig_minutos:
+                pdf.add_plot(fig_minutos, x=140, y=current_y, w=60)
+
+        return pdf
+    except Exception as e:
+        print(f"Error al generar el PDF: {str(e)}")
+        raise e
 
 
 def generate_equipo_pdf(data, equipo_seleccionado):
     """
     Genera un PDF con el análisis del equipo seleccionado
     """
-    from calculos.calculo_equipo import (
-        calcular_estadisticas_generales, calcular_metricas_avanzadas,
-        obtener_rivales_con_goles, analizar_tarjetas_por_jornada,
-        analizar_tipos_goles, calcular_goles_contra
-    )
-    from calculos.calculo_jugadores import (
-        obtener_top_goleadores, obtener_top_amonestados,
-        analizar_goles_por_tiempo, analizar_minutos_por_jugador
-    )
-    from visualizaciones.equipo import (
-        graficar_tarjetas_por_jornada, graficar_tipos_goles,
-        graficar_goles_por_tiempo
-    )
-    from visualizaciones.minutos import graficar_minutos_por_jugador
-
-    # Inicializar PDF
-    pdf = PenyaPDF(title=f"Análisis del Equipo - {equipo_seleccionado}")
-    pdf.set_auto_page_break(auto=True, margin=15)
-
-    # Filtrar datos del equipo
-    actas_equipo = data['actas_penya'][data['actas_penya']['equipo'].str.contains(equipo_seleccionado, na=False)]
-    goles_equipo = data['goles_penya'][data['goles_penya']['equipo'].str.contains(equipo_seleccionado, na=False)]
-    partidos_equipo = data['partidos_penya'][data['partidos_penya']['equipo_local'].str.contains(equipo_seleccionado, na=False) | 
-                                            data['partidos_penya']['equipo_visitante'].str.contains(equipo_seleccionado, na=False)]
-    actas_completas = data['actas']
-
-    # Calcular estadísticas
-    estadisticas = calcular_estadisticas_generales(
-        actas_equipo, 
-        goles_equipo, 
-        partidos_equipo, 
-        equipo_seleccionado=equipo_seleccionado
-    )
-
-    # Calcular métricas avanzadas
     try:
-        metricas_avanzadas = calcular_metricas_avanzadas(
-            partidos_equipo, goles_equipo, actas_equipo, actas_completas,
-            equipo_seleccionado=equipo_seleccionado
+        from calculos.calculo_equipo import (
+            calcular_estadisticas_generales, calcular_metricas_avanzadas,
+            obtener_rivales_con_goles, analizar_tarjetas_por_jornada,
+            analizar_tipos_goles, calcular_goles_contra,
+            calcular_tarjetas_rivales
         )
-        goles_recibidos = metricas_avanzadas['goles'][1]['valor']
-    except Exception:
-        try:
-            goles_recibidos = calcular_goles_contra(
-                actas_equipo, partidos_equipo, actas_completas,
-                equipo_seleccionado=equipo_seleccionado
-            )
-        except Exception as e:
-            print(f"Error al calcular goles en contra: {e}")
-            goles_recibidos = "-"
+        from calculos.calculo_jugadores import (
+            obtener_top_goleadores, obtener_top_amonestados,
+            analizar_goles_por_tiempo, analizar_minutos_por_jugador
+        )
+        from visualizaciones.equipo import (
+            graficar_tarjetas_por_jornada, graficar_tipos_goles,
+            graficar_goles_por_tiempo
+        )
+        from visualizaciones.minutos import graficar_minutos_por_jugador
 
-    # Añadir métricas en dos filas
-    pdf.set_y(30)
-    pdf.add_metrics_row([
-        ("PARTIDOS JUGADOS", estadisticas['partidos_jugados']),
-        ("GOLES MARCADOS", estadisticas['goles_marcados']),
-        ("GOLES RECIBIDOS", goles_recibidos)
-    ])
-    
-    pdf.add_metrics_row([
-        ("TARJETAS AMARILLAS", estadisticas['tarjetas_amarillas']),
-        ("TARJETAS ROJAS", estadisticas['tarjetas_rojas']),
-        ("JUGADORES USADOS", len(actas_equipo['jugador'].unique()))
-    ])
+        # Inicializar PDF
+        pdf = PenyaPDF(title=f"Análisis del Equipo - {equipo_seleccionado}")
+        pdf.set_auto_page_break(auto=True, margin=15)
 
-    # Título de la sección de gráficos
-    pdf.ln(5)
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, "Análisis de Rendimiento", 0, 1, 'L')
-    pdf.ln(2)
+        # Filtrar datos del equipo
+        datos_equipo = {}
+        datos_equipo['actas'] = data['actas']
+        datos_equipo['actas_penya'] = data['actas'][data['actas']['equipo'].str.contains(equipo_seleccionado, na=False)]
+        datos_equipo['goles_penya'] = data['goles'][data['goles']['equipo'].str.contains(equipo_seleccionado, na=False)]
+        datos_equipo['partidos_penya'] = data['jornadas'][
+            (data['jornadas']['equipo_local'].str.contains(equipo_seleccionado, na=False)) | 
+            (data['jornadas']['equipo_visitante'].str.contains(equipo_seleccionado, na=False))
+        ]
 
-    # Preparar y añadir los gráficos en una fila
-    current_y = pdf.get_y()
-    
-    # Gráfico de goles por tiempo
-    goles_tiempo = analizar_goles_por_tiempo(goles_equipo)
-    fig_goles_tiempo = graficar_goles_por_tiempo(goles_tiempo, return_fig=True)
-    if fig_goles_tiempo:
-        pdf.add_plot(fig_goles_tiempo, x=10, y=current_y)
+        # Calcular estadísticas
+        estadisticas = calcular_estadisticas_generales(
+            datos_equipo['actas_penya'], 
+            datos_equipo['goles_penya'], 
+            datos_equipo['partidos_penya'],
+            equipo_seleccionado
+        )
 
-    # Gráfico de tipos de goles
-    tipos_goles = analizar_tipos_goles(goles_equipo)
-    fig_tipos_goles = graficar_tipos_goles(tipos_goles, return_fig=True)
-    if fig_tipos_goles:
-        pdf.add_plot(fig_tipos_goles, x=73, y=current_y)
+        # Calcular métricas avanzadas
+        metricas = []
+        
+        # Goles a favor
+        metricas.append({
+            'titulo': 'Goles a favor',
+            'valor': estadisticas['goles_marcados'],
+            'referencia': data['medias_liga']['ref_goles_favor']
+        })
+        
+        # Goles en contra
+        goles_contra = calcular_goles_contra(
+            datos_equipo['actas_penya'], 
+            datos_equipo['partidos_penya'],
+            datos_equipo['actas'],
+            equipo_seleccionado
+        )
+        metricas.append({
+            'titulo': 'Goles en contra',
+            'valor': goles_contra,
+            'referencia': data['medias_liga']['ref_goles_contra']
+        })
+        
+        # Tarjetas amarillas propias
+        metricas.append({
+            'titulo': 'TA Propias',
+            'valor': estadisticas['tarjetas_amarillas'],
+            'referencia': data['medias_liga']['ref_tarjetas_amarillas']
+        })
+        
+        # Tarjetas rojas propias
+        metricas.append({
+            'titulo': 'TR Propias',
+            'valor': estadisticas['tarjetas_rojas'],
+            'referencia': data['medias_liga']['ref_tarjetas_rojas']
+        })
+        
+        # Tarjetas rivales
+        tarjetas_rivales = calcular_tarjetas_rivales(
+            datos_equipo['actas'],
+            datos_equipo['partidos_penya'],
+            equipo_seleccionado
+        )
+        metricas.append({
+            'titulo': 'TA Rival',
+            'valor': tarjetas_rivales['amarillas'],
+            'referencia': data['medias_liga']['ref_ta_rival']
+        })
+        metricas.append({
+            'titulo': 'TR Rival',
+            'valor': tarjetas_rivales['rojas'],
+            'referencia': data['medias_liga']['ref_tr_rival']
+        })
 
-    # Gráfico de tarjetas por jornada
-    tarjetas_jornada = analizar_tarjetas_por_jornada(actas_equipo)
-    fig_tarjetas = graficar_tarjetas_por_jornada(tarjetas_jornada, return_fig=True)
-    if fig_tarjetas:
-        pdf.add_plot(fig_tarjetas, x=136, y=current_y)
+        # Añadir métricas al PDF
+        pdf.set_y(30)
+        for metrica in metricas:
+            pdf.add_metrics_row([
+                (metrica['titulo'], f"{metrica['valor']} ({metrica['referencia']})")
+            ])
 
-    # Nueva página para análisis de jugadores
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(0, 10, "Análisis de Jugadores", 0, 1, 'L')
-    pdf.ln(2)
+        # Título de la sección de gráficos
+        pdf.ln(5)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 10, "Análisis de Rendimiento", 0, 1, 'L')
+        pdf.ln(2)
 
-    current_y = pdf.get_y()
+        # Preparar y añadir los gráficos
+        current_y = pdf.get_y()
+        
+        # Gráfico de tarjetas por jornada
+        tarjetas_jornada = analizar_tarjetas_por_jornada(datos_equipo['actas_penya'])
+        if not tarjetas_jornada.empty:
+            fig_tarjetas = graficar_tarjetas_por_jornada(tarjetas_jornada, return_fig=True)
+            if fig_tarjetas:
+                pdf.add_plot(fig_tarjetas, x=10, y=current_y, w=85)
 
-    # Gráfico de minutos por jugador
-    minutos_jugador = analizar_minutos_por_jugador(actas_equipo)
-    fig_minutos = graficar_minutos_por_jugador(minutos_jugador.head(10), return_fig=True)
-    if fig_minutos:
-        pdf.add_plot(fig_minutos, x=10, y=current_y, w=190)
+        # Gráfico de tipos de goles
+        tipos_goles = analizar_tipos_goles(datos_equipo['goles_penya'])
+        if not tipos_goles.empty:
+            fig_tipos_goles = graficar_tipos_goles(tipos_goles, return_fig=True)
+            if fig_tipos_goles:
+                pdf.add_plot(fig_tipos_goles, x=105, y=current_y, w=85)
 
-    return pdf
+        # Nueva página para análisis de jugadores
+        pdf.add_page()
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 10, "Análisis de Jugadores", 0, 1, 'L')
+        pdf.ln(2)
+
+        current_y = pdf.get_y()
+
+        # Gráfico de minutos por jugador
+        minutos_jugador = analizar_minutos_por_jugador(datos_equipo['actas_penya'])
+        if not minutos_jugador.empty:
+            fig_minutos = graficar_minutos_por_jugador(minutos_jugador.head(10), return_fig=True)
+            if fig_minutos:
+                pdf.add_plot(fig_minutos, x=10, y=current_y, w=190)
+
+        return pdf
+    except Exception as e:
+        print(f"Error al generar el PDF: {str(e)}")
+        raise e
+
+
+def generate_jugador_pdf(data, jugador_seleccionado):
+    """
+    Genera un PDF con el análisis del jugador seleccionado
+    """
+    try:
+        from calculos.calculo_jugadores import (
+            calcular_estadisticas_jugador,
+            analizar_goles_por_tiempo
+        )
+        from visualizaciones.jugadores import (
+            graficar_minutos_por_jornada,
+            graficar_goles_por_tiempo,
+            graficar_tarjetas_por_jornada
+        )
+
+        # Inicializar PDF
+        pdf = PenyaPDF(title=f"Análisis del Jugador - {jugador_seleccionado}")
+        pdf.set_auto_page_break(auto=True, margin=15)
+
+        # Filtrar datos del jugador
+        actas_jugador = data['actas_penya'][data['actas_penya']['jugador'] == jugador_seleccionado]
+        goles_jugador = data['goles_penya'][data['goles_penya']['jugador'] == jugador_seleccionado]
+
+        # Calcular estadísticas del jugador
+        estadisticas = calcular_estadisticas_jugador(
+            data['actas_penya'],
+            jugador_seleccionado
+        )
+
+        # Añadir métricas básicas
+        metricas = [
+            ('Partidos Jugados', estadisticas['partidos_jugados']),
+            ('Minutos Jugados', estadisticas['minutos_jugados']),
+            ('Goles Marcados', estadisticas['goles']),
+            ('Tarjetas Amarillas', estadisticas['tarjetas_amarillas']),
+            ('Tarjetas Rojas', estadisticas['tarjetas_rojas'])
+        ]
+        pdf.set_y(30)
+        pdf.add_metrics_row(metricas[:3])  # Primera fila
+        pdf.add_metrics_row(metricas[3:])  # Segunda fila
+
+        # Título de la sección de gráficos
+        pdf.ln(5)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.cell(0, 10, "Análisis de Rendimiento", 0, 1, 'L')
+        pdf.ln(2)
+
+        # Preparar y añadir los gráficos
+        current_y = pdf.get_y()
+
+        # Gráfico de minutos por jornada
+        minutos_jornada = obtener_minutos_por_jornada(actas_jugador, jugador_seleccionado)
+        if not minutos_jornada.empty:
+            fig_minutos = graficar_minutos_por_jornada(minutos_jornada, return_fig=True)
+            if fig_minutos:
+                pdf.add_plot(fig_minutos, x=10, y=current_y, w=85)
+
+        # Gráfico de goles por tiempo
+        if not goles_jugador.empty:
+            goles_tiempo = analizar_goles_por_tiempo(goles_jugador)
+            if not goles_tiempo.empty:
+                fig_goles = graficar_goles_por_tiempo(goles_tiempo, return_fig=True)
+                if fig_goles:
+                    pdf.add_plot(fig_goles, x=105, y=current_y, w=85)
+
+        # Nueva página para más gráficos si es necesario
+        pdf.add_page()
+
+        # Gráfico de tarjetas
+        tarjetas_temp = []
+        for _, partido in actas_jugador.iterrows():
+            jornada = partido['jornada']
+            # Procesar tarjetas amarillas
+            if partido['Tarjetas Amarillas'] > 0:
+                tarjetas_temp.append({
+                    'Jornada': jornada,
+                    'Tipo': 'Amarilla',
+                    'Color': COLOR_TARJETAS_AMARILLAS
+                })
+            # Procesar tarjetas rojas
+            if partido['Tarjetas Rojas'] > 0:
+                tarjetas_temp.append({
+                    'Jornada': jornada,
+                    'Tipo': 'Roja',
+                    'Color': COLOR_TARJETAS_ROJAS
+                })
+
+        if tarjetas_temp:
+            import pandas as pd
+            tarjetas_df = pd.DataFrame(tarjetas_temp)
+            tarjetas_df = tarjetas_df.sort_values('Jornada')
+            fig_tarjetas = graficar_tarjetas_por_jornada(tarjetas_df, return_fig=True)
+            if fig_tarjetas:
+                pdf.add_plot(fig_tarjetas, x=10, y=30, w=190)
+
+        return pdf
+    except Exception as e:
+        print(f"Error al generar el PDF: {str(e)}")
+        raise e
 
 
 def show_download_button(data, page_type, equipo_seleccionado=None, jugador_seleccionado=None):
@@ -403,8 +564,14 @@ def show_download_button(data, page_type, equipo_seleccionado=None, jugador_sele
                 )
             else:
                 st.error("Por favor, selecciona un equipo válido")
+        elif page_type == 'jugador' and jugador_seleccionado:
+            pdf = generate_jugador_pdf(data, jugador_seleccionado)
+            st.markdown(
+                get_pdf_download_link(pdf, f"analisis_jugador_{jugador_seleccionado}.pdf"), 
+                unsafe_allow_html=True
+            )
         else:
-            st.error("Tipo de página no válido o equipo no seleccionado")
+            st.error("Tipo de página no válido o equipo/jugador no seleccionado")
     except Exception as e:
         st.error(f"Error al generar el PDF: {str(e)}")
         print(f"Error detallado: {e}")

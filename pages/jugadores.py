@@ -3,46 +3,23 @@ Página de análisis individual de jugadores
 """
 import streamlit as st
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Importar módulos propios
 from utils.data import cargar_datos
 from utils.ui import page_config  # Solo importar page_config, no show_sidebar
-from calculos.calculo_jugadores import calcular_estadisticas_jugador, ajustar_tarjetas_por_doble_amarilla
+from calculos.calculo_jugadores import calcular_estadisticas_jugador, ajustar_tarjetas_por_doble_amarilla, analizar_goles_por_tiempo
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, COLOR_TARJETAS_AMARILLAS, COLOR_TARJETAS_ROJAS
+from utils.pdf_export import show_download_button
+from visualizaciones.jugadores import graficar_minutos_por_jornada, graficar_goles_por_tiempo
+from calculos.calculo_minutos import obtener_minutos_por_jornada
 
 # Configurar la página
 page_config()
 
 # Cargar datos
 data = cargar_datos()
-
-def obtener_minutos_por_jornada(actas_df, jugador_nombre):
-    """
-    Obtiene los minutos jugados por jornada para un jugador específico
-    
-    Args:
-        actas_df: DataFrame con los datos de actas
-        jugador_nombre: Nombre del jugador
-        
-    Returns:
-        DataFrame: DataFrame con los minutos por jornada
-    """
-    # Filtrar datos del jugador
-    datos_jugador = actas_df[actas_df['jugador'] == jugador_nombre]
-    
-    if datos_jugador.empty:
-        return pd.DataFrame()
-    
-    # Seleccionar columnas relevantes
-    minutos_por_jornada = datos_jugador[['jornada', 'minutos_jugados', 'rival', 'status']]
-    
-    # Agregar columna booleana para titular
-    minutos_por_jornada['es_titular'] = minutos_por_jornada['status'] == 'Titular'
-    
-    # Ordenar por jornada
-    minutos_por_jornada = minutos_por_jornada.sort_values('jornada')
-    
-    return minutos_por_jornada
 
 def mostrar_tarjeta_jugador(estadisticas):
     """
@@ -383,6 +360,18 @@ def main():
                     st.info("Este jugador no ha recibido tarjetas en la temporada.")
         else:
             st.info("Este jugador no ha marcado goles ni recibido tarjetas en la temporada.")
+
+    # Mostrar botón de exportación a PDF
+    c1, c2, c3 = st.columns([6, 2, 6])
+    with c2:
+        # Crear un diccionario con los datos filtrados
+        datos_filtrados = {
+            'actas_penya': data['actas_penya'],
+            'goles_penya': data['goles_penya'],
+            'partidos_penya': data['partidos_penya'],
+            'actas': data['actas']  # Datos completos necesarios para cálculos
+        }
+        show_download_button(datos_filtrados, 'jugador', jugador_seleccionado=jugador_seleccionado)
 
 if __name__ == "__main__":
     main()
