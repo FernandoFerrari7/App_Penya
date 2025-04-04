@@ -105,14 +105,3 @@ def cerrar_sesion():
             del st.session_state[key]
     
     st.rerun()  # Recargamos la página
-
-def mostrar_info_usuario():
-    """
-    Muestra la información del usuario y el botón de cierre de sesión
-    """
-    if 'usuario_autenticado' in st.session_state and st.session_state.usuario_autenticado:
-        col1, col2 = st.columns([8, 2])
-        with col2:
-            st.write(f"Usuario: **{st.session_state.nombre_usuario}**")
-            if st.button("Cerrar Sesión", key="btn_logout", type="primary", use_container_width=True):
-                cerrar_sesion()

@@ -15,9 +15,6 @@ def main():
     
     # Verificar si el usuario está autenticado
     if login.mostrar_login():
-        # Mostrar información de usuario (incluye botón de cerrar sesión)
-        login.mostrar_info_usuario()
-        
         # Ejecutar la aplicación principal
         home.main()
 

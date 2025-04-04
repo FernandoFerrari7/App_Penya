@@ -17,20 +17,24 @@ def crear_menu():
         {"nombre": "Jugadores", "icono": "🧍"}
     ]
     
-    # Crear un contenedor para el menú
-    menu_container = st.container()
+    # Inicializar la selección actual
+    if 'pagina_actual' not in st.session_state:
+        st.session_state.pagina_actual = "Inicio"
     
-    with menu_container:
-        # Crear columnas con distribución modificada para separar más el logo
-        cols = st.columns([1, 1, 1, 0.3, 0.5])
-        
-        # Inicializar la selección actual
-        if 'pagina_actual' not in st.session_state:
-            st.session_state.pagina_actual = "Inicio"
+    # Crear contenedor principal con tres columnas para la cabecera
+    header_cols = st.columns([1, 4, 1])
+    
+    # Logo en la primera columna
+    with header_cols[0]:
+        st.image("assets/logo_penya.png", width=70)
+    
+    # Menú en la columna central
+    with header_cols[1]:
+        menu_cols = st.columns(len(opciones))
         
         # Crear botones para cada opción
         for i, opcion in enumerate(opciones):
-            with cols[i]:
+            with menu_cols[i]:
                 # Estilo diferente para la página actual
                 if st.session_state.pagina_actual == opcion["nombre"]:
                     st.button(
@@ -47,22 +51,15 @@ def crear_menu():
                     ):
                         st.session_state.pagina_actual = opcion["nombre"]
                         st.rerun()
-        
-        # Columna vacía para crear espacio
-        with cols[3]:
-            st.write("")
-            
-        # Añadir el logo en la última columna y alinearlo mejor al menú
-        with cols[4]:
-            # Reducimos el padding/espacio para que el logo quede más arriba
-            st.markdown("""
-            <style>
-            [data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > [data-testid="stVerticalBlock"] {
-                padding-top: 0px;
-            }
-            </style>
-            """, unsafe_allow_html=True)
-            st.image("assets/logo_penya.png", width=70)
+    
+    # Información de usuario en la tercera columna
+    with header_cols[2]:
+        if 'usuario_autenticado' in st.session_state and st.session_state.usuario_autenticado:
+            st.write(f"Usuario: **{st.session_state.nombre_usuario}**")
+            if st.button("Cerrar Sesión", key="btn_logout", type="primary", use_container_width=True):
+                # Importamos la función aquí para evitar importaciones circulares
+                from common.login import cerrar_sesion
+                cerrar_sesion()
     
     # Separador después del menú
     st.markdown("---")

@@ -46,17 +46,6 @@ def dashboard_principal():
         (data['jornadas']['equipo_visitante'].apply(normalizar_nombre_equipo) == equipo_normalizado)
     ]
 
-    # Cabecera
-    c1, c2, c3 = st.columns([2, 3, 2], gap="small")
-    with c1:
-        st.image("assets/logo_penya.png", width=110) 
-    with c2:
-        st.write("# Penya Independent")
-        st.write("#### Análisis de Rendimiento")
-    with c3:
-        st.write("")
-        st.image("assets/logo_ffib.png", width=140)
-    
     # Agregar botón de exportación a PDF
     c1, c2, c3 = st.columns([6, 2, 6])
     with c2:
@@ -137,6 +126,37 @@ def dashboard_principal():
 
 def main():
     """Función principal que muestra el dashboard"""
+    
+    # Configurar estilos CSS para maquetar la cabecera similar a la imagen
+    st.markdown("""
+    <style>
+    .header-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0;
+        margin-bottom: 10px;
+    }
+    .logo-small {
+        width: 70px;
+        height: auto;
+    }
+    .menu-container {
+        width: 100%;
+        margin-top: 0;
+        padding-top: 0;
+    }
+    .user-container {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] {
+        align-items: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
     
     # Crear el menú de navegación
     pagina_seleccionada = crear_menu()
