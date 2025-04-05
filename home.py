@@ -45,20 +45,6 @@ def dashboard_principal():
         (data['jornadas']['equipo_local'].apply(normalizar_nombre_equipo) == equipo_normalizado) |
         (data['jornadas']['equipo_visitante'].apply(normalizar_nombre_equipo) == equipo_normalizado)
     ]
-
-    # Agregar botón de exportación a PDF
-    c1, c2, c3 = st.columns([6, 2, 6])
-    with c2:
-        # Crear un diccionario con los datos filtrados
-        datos_filtrados = {
-            'actas_penya': actas_penya,
-            'goles_penya': goles_penya,
-            'partidos_penya': partidos_penya,
-            'actas': data['actas']  # Datos completos necesarios para cálculos
-        }
-        show_download_button(datos_filtrados, 'home')
-    
-    st.markdown("---")
     
     # Calcular estadísticas generales
     estadisticas_equipo = calcular_estadisticas_generales(
@@ -81,8 +67,16 @@ def dashboard_principal():
             st.error(f"Error al calcular goles en contra: {e2}")
             goles_recibidos = 0
 
-    # Métricas resumen
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Crear un diccionario con los datos filtrados para el botón PDF
+    datos_filtrados = {
+        'actas_penya': actas_penya,
+        'goles_penya': goles_penya,
+        'partidos_penya': partidos_penya,
+        'actas': data['actas']  # Datos completos necesarios para cálculos
+    }
+    
+    # Métricas resumen con el botón de PDF en la misma línea
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
     with col1:
         st.metric("Partidos Jugados", estadisticas_equipo['partidos_jugados'])
     with col2:
@@ -93,6 +87,10 @@ def dashboard_principal():
         st.metric("Tarjetas Amarillas", estadisticas_equipo['tarjetas_amarillas'])
     with col5:
         st.metric("Tarjetas Rojas", estadisticas_equipo['tarjetas_rojas'])
+    with col6:
+        # Añadir un espacio para alinear verticalmente con las métricas
+        st.write("")
+        show_download_button(datos_filtrados, 'home')
     
     st.markdown("---")
 
@@ -155,6 +153,14 @@ def main():
     div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] {
         align-items: center;
     }
+    /* Estilo para centrar verticalmente el botón de descarga */
+    div[data-testid="stVerticalBlock"] > div:has(> div.btn-download) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        margin-top: 20px;
+    }
     </style>
     """, unsafe_allow_html=True)
     
@@ -174,7 +180,3 @@ if __name__ == "__main__":
     
     # Ejecutar la función principal
     main()
-
-
-
-

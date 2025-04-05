@@ -149,8 +149,7 @@ def filtrar_datos_equipo(data, equipo_seleccionado):
 def main():
     """Función principal que muestra el análisis de equipos"""
     
-    # Título de la página
-    st.title("Análisis de Equipos")
+    # Eliminar el título "Análisis de Equipos"
     
     # Obtener lista de equipos disponibles
     equipos_disponibles = sorted(data['actas']['equipo'].unique())
@@ -158,18 +157,56 @@ def main():
     # Asegurar que PENYA INDEPENDENT está disponible y es el predeterminado
     equipo_default = next((e for e in equipos_disponibles if "PENYA INDEPENDENT" in e), equipos_disponibles[0])
     
-    # Selector de equipos
-    equipo_seleccionado = st.selectbox(
-        "Seleccionar Equipo", 
-        options=equipos_disponibles, 
-        index=equipos_disponibles.index(equipo_default),
-        format_func=lambda x: x.strip()
-    )
+    # Crear un contenedor para aplicar CSS personalizado al selector y botón
+    st.markdown("""
+    <style>
+    /* Ajustar márgenes y espaciado para mejorar la alineación */
+    div[data-testid="stSelectbox"] {
+        margin-bottom: 0;
+    }
     
-    # Botón de descarga PDF
-    st.markdown("---")
-    if equipo_seleccionado:  # Solo mostrar el botón si hay un equipo seleccionado
-        show_download_button(data=data, page_type='equipo', equipo_seleccionado=equipo_seleccionado.strip())
+    /* Estilo para contenedor del botón PDF */
+    div.stButton > button {
+        margin-top: 0;
+    }
+    
+    /* Ajustar la alineación vertical entre el selector y el botón */
+    div.row-widget.stButton {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;  /* Alinear a la derecha */
+        height: 38px;
+        margin-top: 22px;
+    }
+    
+    /* Añadir espacio entre el selector y la columna del botón */
+    div[data-testid="column"] + div[data-testid="column"] {
+        padding-left: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Crear un diseño de tres columnas para empujar el botón hacia la derecha
+    col1, col2, col3 = st.columns([3, 0.5, 1])
+    
+    with col1:
+        # Selector de equipos
+        equipo_seleccionado = st.selectbox(
+            "Seleccionar Equipo", 
+            options=equipos_disponibles, 
+            index=equipos_disponibles.index(equipo_default),
+            format_func=lambda x: x.strip()
+        )
+    
+    # Columna vacía para crear espacio
+    with col2:
+        st.write("")
+        
+    with col3:
+        # Añadir el botón de PDF en la misma línea que el selector, más a la derecha
+        if equipo_seleccionado:  # Solo mostrar el botón si hay un equipo seleccionado
+            show_download_button(data=data, page_type='equipo', equipo_seleccionado=equipo_seleccionado.strip())
+    
     st.markdown("---")
     
     # Filtrar los datos para el equipo seleccionado
