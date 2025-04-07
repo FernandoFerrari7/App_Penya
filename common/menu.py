@@ -14,7 +14,8 @@ def crear_menu():
     opciones = [
         {"nombre": "Inicio", "icono": "⚽"},
         {"nombre": "Equipo", "icono": "🧍🧍"},
-        {"nombre": "Jugadores", "icono": "🧍"}
+        {"nombre": "Jugadores", "icono": "🧍"},
+        {"nombre": "ML", "icono": "🔍"}
     ]
     
     # Inicializar la selección actual
@@ -76,6 +77,7 @@ def mostrar_pagina_actual():
     from home import main as main_home
     from pages.jugadores import main as main_jugadores
     from pages.equipos import main as main_equipos
+    from pages.ml import main as main_ml
     
     pagina = st.session_state.pagina_actual
     
@@ -85,6 +87,8 @@ def mostrar_pagina_actual():
         main_jugadores()
     elif pagina == "Equipo":
         main_equipos()
+    elif pagina == "ML":
+        main_ml()
     else:
         st.error(f"Página no encontrada: {pagina}")
 
