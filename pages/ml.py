@@ -14,6 +14,7 @@ from sklearn.decomposition import PCA
 from utils.data import cargar_datos
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR
 from utils.ui import page_config
+from calculos.calculo_equipo import calcular_goles_contra
 
 def limpiar_nombre_equipo(nombre):
     """
@@ -148,6 +149,33 @@ def preparar_datos_clustering():
     # Asegurarse de que no hay listas en equipo_limpio
     metricas_equipo = metricas_equipo[metricas_equipo['equipo_limpio'].apply(lambda x: not isinstance(x, list))]
     
+    # Calcular goles en contra
+    goles_contra = {}
+    for equipo in metricas_equipo['equipo_limpio']:
+        try:
+            # Filtrar los datos del equipo específico
+            actas_equipo = actas[actas['equipo_limpio'] == equipo]
+            
+            # Obtener partidos de este equipo
+            jornadas_equipo = set(actas_equipo['jornada'].unique())
+            partidos_equipo = data['jornadas'][data['jornadas']['jornada'].isin(jornadas_equipo)]
+            
+            # Calcular goles en contra
+            goles_contra_equipo = calcular_goles_contra(
+                actas_equipo, 
+                partidos_equipo, 
+                data['actas'], 
+                equipo_seleccionado=equipo
+            )
+            
+            goles_contra[equipo] = goles_contra_equipo
+        except Exception:
+            # Si falla, asignar un valor basado en la media
+            goles_contra[equipo] = metricas_equipo[metricas_equipo['equipo_limpio'] == equipo]['goles'].iloc[0] * 0.8
+
+    # Añadir columna de goles en contra
+    metricas_equipo['goles_contra'] = metricas_equipo['equipo_limpio'].map(goles_contra)
+    
     return metricas_equipo
 
 def realizar_clustering(datos, n_clusters=4):
@@ -156,7 +184,7 @@ def realizar_clustering(datos, n_clusters=4):
     """
     # Características para el clustering
     features = [
-        'goles', 'Tarjetas Amarillas', 'Tarjetas Rojas', 
+        'goles', 'goles_contra', 'Tarjetas Amarillas', 'Tarjetas Rojas', 
         'minutos_jugados', 'jugador', 'total_sustituciones',
         'goles_primer_cuarto', 'goles_segundo_cuarto', 
         'goles_tercer_cuarto', 'goles_ultimo_cuarto'
@@ -167,7 +195,7 @@ def realizar_clustering(datos, n_clusters=4):
     
     # Verificar que tenemos suficientes datos
     if len(X) < n_clusters:
-        X['cluster'] = 0
+        X['cluster'] = 1  # Comenzar desde 1 en lugar de 0
         return X
     
     # Verificar y limpiar tipos de datos
@@ -202,6 +230,7 @@ def generar_caracteristicas_cluster(datos_clustered):
     # Obtener estadísticas globales para comparaciones
     medias_globales = {
         'goles': datos_clustered['goles'].mean(),
+        'goles_contra': datos_clustered['goles_contra'].mean(),
         'Tarjetas Amarillas': datos_clustered['Tarjetas Amarillas'].mean(),
         'Tarjetas Rojas': datos_clustered['Tarjetas Rojas'].mean(),
         'jugador': datos_clustered['jugador'].mean(),
@@ -218,6 +247,7 @@ def generar_caracteristicas_cluster(datos_clustered):
         # Métricas promedio del cluster
         metricas_cluster = {
             'goles': cluster_data['goles'].mean(),
+            'goles_contra': cluster_data['goles_contra'].mean(),
             'Tarjetas Amarillas': cluster_data['Tarjetas Amarillas'].mean(),
             'Tarjetas Rojas': cluster_data['Tarjetas Rojas'].mean(),
             'jugador': cluster_data['jugador'].mean(),
@@ -251,6 +281,12 @@ def generar_caracteristicas_cluster(datos_clustered):
             descripcion.append(f"Alta capacidad goleadora ({metricas_cluster['goles']:.1f} goles/equipo)")
         elif metricas_cluster['goles'] < medias_globales['goles'] * 0.8:
             descripcion.append(f"Baja producción ofensiva ({metricas_cluster['goles']:.1f} goles/equipo)")
+        
+        # Analizar goles en contra
+        if metricas_cluster['goles_contra'] > medias_globales['goles_contra'] * 1.2:
+            descripcion.append(f"Defensa vulnerable ({metricas_cluster['goles_contra']:.1f} goles recibidos/equipo)")
+        elif metricas_cluster['goles_contra'] < medias_globales['goles_contra'] * 0.8:
+            descripcion.append(f"Defensa sólida ({metricas_cluster['goles_contra']:.1f} goles recibidos/equipo)")
         
         # Analizar disciplina
         if metricas_cluster['Tarjetas Amarillas'] > medias_globales['Tarjetas Amarillas'] * 1.2:
@@ -303,10 +339,9 @@ def crear_mapa_equipos(datos_clustered):
     # Encontrar Penya Independent
     penya_data = pca_df[pca_df['Equipo'].str.contains('PENYA INDEPENDENT', case=False)]
     
-    # Definir colores más intensos para los clusters
-    # Cambiado el color del grupo 1 a un azul más oscuro/intenso
+    # Definir colores más intensos para los clusters - usando un azul mucho más oscuro para cluster 1
     colores_cluster = [
-        '#0052CC',  # Azul oscuro intenso para el Grupo 1
+        '#00397A',  # Azul muy oscuro para el Grupo 1
         '#d62728',  # Rojo
         '#2ca02c',  # Verde
         '#9467bd',  # Púrpura
@@ -314,19 +349,21 @@ def crear_mapa_equipos(datos_clustered):
         '#e377c2'   # Rosa
     ]
     
-    # Crear gráfico
+    # Crear gráfico con puntos del mismo tamaño (quitando size='Goles')
     fig = px.scatter(
         pca_df, 
         x='PCA1', 
         y='PCA2', 
         color='Cluster',
-        size='Goles',
+        text='Equipo',  # Añadir nombres de equipos como etiquetas
         hover_name='Equipo',
         color_discrete_sequence=colores_cluster
     )
     
     # Personalizar para mostrar solo el nombre del equipo y el cluster en el hover
     fig.update_traces(
+        textposition='top center',  # Posición de las etiquetas de texto
+        marker=dict(size=12),  # Tamaño fijo para todos los puntos
         hovertemplate='<b>%{hovertext}</b><br>Grupo: %{marker.color}<extra></extra>'
     )
     
@@ -336,11 +373,13 @@ def crear_mapa_equipos(datos_clustered):
             go.Scatter(
                 x=penya_data['PCA1'], 
                 y=penya_data['PCA2'], 
-                mode='markers',
+                mode='markers+text',
                 name='Penya Independent',
+                text=penya_data['Equipo'],
+                textposition='top center',
                 marker=dict(
                     color=PENYA_PRIMARY_COLOR, 
-                    size=20, 
+                    size=15, 
                     symbol='star',
                     line=dict(width=2, color='white')
                 ),
@@ -356,13 +395,12 @@ def crear_mapa_equipos(datos_clustered):
             y=1.02,
             xanchor="center",
             x=0.5,
-            itemsizing='constant',  # Mismo tamaño para todos los ítems
-            itemwidth=30,  # Ancho fijo para los ítems
-            itemclick=False,  # Desactivar click en la leyenda
-            itemdoubleclick=False  # Desactivar doble click en la leyenda
+            itemsizing='constant',
+            itemwidth=30,
+            itemclick=False,
+            itemdoubleclick=False
         ),
-        # Título del gráfico
-        title="Análisis de similitud de equipos"
+        title=None
     )
     
     return fig
@@ -373,7 +411,8 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo="Comparativa de M
     """
     # Seleccionar métricas relevantes para comparar
     metricas_comparar = [
-        ('Goles', 'goles'),
+        ('Goles a favor', 'goles'),
+        ('Goles en contra', 'goles_contra'),
         ('Tarj. Amarillas', 'Tarjetas Amarillas'),
         ('Tarj. Rojas', 'Tarjetas Rojas'),
         ('Jugadores', 'jugador'),
@@ -429,8 +468,6 @@ def main():
     """
     Función principal para análisis táctico de equipos
     """
-    # Eliminado: st.title("🏆 Análisis Táctico de Equipos")
-    
     # Preparar datos
     with st.spinner('Procesando datos de equipos...'):
         try:
@@ -455,80 +492,15 @@ def main():
     # Generar características de clusters
     caracteristicas_clusters = generar_caracteristicas_cluster(datos_clustered)
     
-    # SECCIÓN 1: Mapa de equipos - Eliminado el título "Mapa de Equipos por Similitud"
+    # SECCIÓN 1: Mapa de equipos
+    st.subheader("Análisis de similitud de equipos")
     fig_mapa = crear_mapa_equipos(datos_clustered)
     st.plotly_chart(fig_mapa, use_container_width=True)
     
-    with st.expander("¿Cómo interpretar este mapa?"):
-        st.markdown("""
-        Este mapa posiciona a cada equipo según la similitud de características:
-        
-        - **Equipos cercanos**: Tienen estilos de juego similares
-        - **Colores**: Cada grupo representa equipos con patrones similares
-        - **Tamaño**: Representa la cantidad de goles marcados
-        - **Estrella**: Posición de Penya Independent
-        """)
+    # Eliminado: Elemento "Cómo interpretar este mapa"
     
-    # SECCIÓN 2: Características de clusters
-    st.subheader("Características de los Grupos")
-    
-    # Mostrar características de cada cluster
-    for cluster_id in sorted(caracteristicas_clusters.keys()):
-        cluster_info = caracteristicas_clusters[cluster_id]
-        
-        # Crear un estilo visual con colores correspondientes al gráfico
-        colores_cluster = [
-            '#1f77b4',  # Azul más oscuro
-            '#d62728',  # Rojo
-            '#2ca02c',  # Verde
-            '#9467bd',  # Púrpura
-            '#8c564b',  # Marrón
-            '#e377c2'   # Rosa
-        ]
-        
-        color_cluster = colores_cluster[(cluster_id - 1) % len(colores_cluster)]
-        
-        st.markdown(
-            f"""
-            <div style="
-                border-left: 5px solid {color_cluster};
-                padding-left: 15px;
-                margin-bottom: 20px;
-            ">
-            <h3>Grupo {cluster_id}</h3>
-            </div>
-            """, 
-            unsafe_allow_html=True
-        )
-        
-        # Mostrar descripciones
-        if cluster_info['descripcion']:
-            for desc in cluster_info['descripcion']:
-                st.markdown(f"- {desc}")
-        else:
-            st.markdown("*No se identificaron características distintivas*")
-        
-        # Mostrar equipos
-        with st.expander(f"Ver equipos del Grupo {cluster_id} ({len(cluster_info['equipos'])} equipos)"):
-            # Ordenar equipos alfabéticamente, con Penya primero si está en el grupo
-            equipos_ordenados = sorted(cluster_info['equipos'])
-            # Mover Penya al principio si existe
-            penya_equipos = [e for e in equipos_ordenados if 'PENYA' in e.upper()]
-            otros_equipos = [e for e in equipos_ordenados if 'PENYA' not in e.upper()]
-            equipos_mostrar = penya_equipos + otros_equipos
-            
-            # Mostrar en columnas para aprovechar espacio
-            cols = st.columns(3)
-            for i, equipo in enumerate(equipos_mostrar):
-                with cols[i % 3]:
-                    if 'PENYA' in equipo.upper():
-                        st.markdown(f"**{equipo}**")
-                    else:
-                        st.markdown(f"{equipo}")
-
-# SECCIÓN 3: Selector de equipo y análisis comparativo
+    # SECCIÓN 2: Selector de equipo y análisis
     st.markdown("---")
-    st.subheader("Análisis Comparativo de Equipos")
     
     # Lista de todos los equipos
     todos_equipos = sorted(datos_clustered['equipo_limpio'].unique())
@@ -548,79 +520,53 @@ def main():
     equipo_data = datos_clustered[datos_clustered['equipo_limpio'] == equipo_seleccionado].iloc[0]
     cluster_id = int(equipo_data['cluster'])
     
-    st.markdown(f"**{equipo_seleccionado}** pertenece al **Grupo {cluster_id}**")
+    # Datos del cluster al que pertenece el equipo
+    cluster_info = caracteristicas_clusters[cluster_id]
     
-    # Métricas del equipo vs media del cluster
-    col1, col2, col3 = st.columns(3)
+    # Encontrar Penya Independent para comparación
+    penya_data = datos_clustered[datos_clustered['equipo_limpio'].str.contains('PENYA INDEPENDENT', case=False)]
     
-    with col1:
-        st.metric(
-            "Goles", 
-            f"{equipo_data['goles']:.0f}", 
-            f"{(equipo_data['goles'] - caracteristicas_clusters[cluster_id]['metricas']['goles']):.1f}"
-        )
+    if penya_data.empty:
+        st.warning("No se encontraron datos de Penya Independent para comparación")
+        return
     
-    with col2:
-        st.metric(
-            "Tarjetas Amarillas", 
-            f"{equipo_data['Tarjetas Amarillas']:.0f}", 
-            f"{(equipo_data['Tarjetas Amarillas'] - caracteristicas_clusters[cluster_id]['metricas']['Tarjetas Amarillas']):.1f}"
-        )
+    penya_row = penya_data.iloc[0]
+    penya_nombre = penya_row['equipo_limpio']
+    penya_cluster = int(penya_row['cluster'])
     
-    with col3:
-        st.metric(
-            "Jugadores", 
-            f"{equipo_data['jugador']:.0f}", 
-            f"{(equipo_data['jugador'] - caracteristicas_clusters[cluster_id]['metricas']['jugador']):.1f}"
-        )
+    # SECCIÓN 3: Análisis del equipo seleccionado
+    st.subheader(f"Análisis de {equipo_seleccionado}")
     
-    # Gráfico comparativo
-    st.plotly_chart(
-        graficar_comparativa(
-            equipo_data, 
-            caracteristicas_clusters[cluster_id]['metricas'], 
-            f"Comparativa: {equipo_seleccionado} vs Media del Grupo"
-        ), 
-        use_container_width=True
-    )
+    # Dos columnas: información del equipo + comparativa con Penya
+    col_info, col_comparativa = st.columns([1, 1])
     
-    # Equipos similares
-    st.subheader("Equipos con Estilo Similar")
-    
-    # Encontrar equipos del mismo cluster
-    equipos_similares = [e for e in caracteristicas_clusters[cluster_id]['equipos'] 
-                       if e != equipo_seleccionado]
-    
-    if equipos_similares:
-        # Si hay más de 5 equipos, mostrar solo los 5 primeros
-        if len(equipos_similares) > 5:
-            with st.expander(f"Ver los {len(equipos_similares)} equipos similares"):
-                cols = st.columns(3)
-                for i, equipo in enumerate(equipos_similares):
-                    with cols[i % 3]:
-                        st.markdown(f"- {equipo}")
+    with col_info:
+        # Información básica del equipo
+        st.markdown(f"**{equipo_seleccionado}** pertenece al **Grupo {cluster_id}**")
+        
+        # Mostrar características del cluster
+        st.markdown("#### Características del grupo:")
+        if cluster_info['descripcion']:
+            for desc in cluster_info['descripcion']:
+                st.markdown(f"- {desc}")
         else:
-            cols = st.columns(3)
-            for i, equipo in enumerate(equipos_similares):
-                with cols[i % 3]:
-                    st.markdown(f"- {equipo}")
-    else:
-        st.markdown("No se encontraron otros equipos en el mismo grupo")
+            st.markdown("*No se identificaron características distintivas*")
+        
+        # Mostrar equipos similares
+        st.markdown("#### Equipos similares:")
+        equipos_similares = [e for e in cluster_info['equipos'] 
+                           if e != equipo_seleccionado][:5]  # Mostrar solo 5
+        
+        if equipos_similares:
+            for equipo in equipos_similares:
+                st.markdown(f"- {equipo}")
+        else:
+            st.markdown("*No se encontraron otros equipos en el mismo grupo*")
     
-    # Comparativa con Penya Independent
-    if 'PENYA INDEPENDENT' in equipo_seleccionado.upper():
-        st.markdown("*Ya estás viendo el análisis de Penya Independent*")
-    else:
-        st.markdown("---")
-        st.subheader("Comparativa con Penya Independent")
-        
-        # Buscar Penya Independent
-        penya_data = datos_clustered[datos_clustered['equipo_limpio'].str.contains('PENYA INDEPENDENT', case=False)]
-        
-        if not penya_data.empty:
-            penya_row = penya_data.iloc[0]
-            penya_nombre = penya_row['equipo_limpio']
-            penya_cluster = int(penya_row['cluster'])
+    # Reemplazar la sección de métricas con la comparativa directa
+    with col_comparativa:
+        if 'PENYA INDEPENDENT' not in equipo_seleccionado.upper():
+            st.markdown("#### Comparativa con Penya Independent:")
             
             # Indicar si están en el mismo grupo o no
             if penya_cluster == cluster_id:
@@ -628,21 +574,11 @@ def main():
             else:
                 st.markdown(f"**{equipo_seleccionado}** (Grupo {cluster_id}) y **{penya_nombre}** (Grupo {penya_cluster}) pertenecen a **diferentes grupos tácticos**")
             
-            # Gráfico comparativo
-            st.plotly_chart(
-                graficar_comparativa(
-                    equipo_data, 
-                    {k: penya_row[k] for k in equipo_data.index if k in penya_row}, 
-                    f"Comparativa: {equipo_seleccionado} vs {penya_nombre}"
-                ), 
-                use_container_width=True
-            )
-
-            # Análisis textual de diferencias
-            st.markdown("#### Diferencias clave:")
+            # Diferencias clave en formato compacto
+            st.markdown("**Diferencias clave:**")
             
             diferencias = []
-            for metrica, col in [('Goles', 'goles'), ('Tarjetas', 'Tarjetas Amarillas'),
+            for metrica, col in [('Goles a favor', 'goles'), ('Goles en contra', 'goles_contra'), ('Tarjetas', 'Tarjetas Amarillas'),
                                 ('Jugadores', 'jugador'), ('Sustituciones', 'total_sustituciones')]:
                 if col in equipo_data and col in penya_row:
                     valor1 = equipo_data[col]
@@ -655,17 +591,37 @@ def main():
                     
                     if abs(diff_pct) > 15:  # Solo mostrar diferencias significativas
                         if diff_pct > 0:
-                            diferencias.append(f"**{metrica}**: {equipo_seleccionado} tiene un {abs(diff_pct):.1f}% más que {penya_nombre}")
+                            if col == 'goles_contra':
+                                # Para goles en contra, más es peor
+                                diferencias.append(f"**{metrica}**: Recibe un {abs(diff_pct):.1f}% más de goles")
+                            else:
+                                diferencias.append(f"**{metrica}**: {abs(diff_pct):.1f}% más")
                         else:
-                            diferencias.append(f"**{metrica}**: {equipo_seleccionado} tiene un {abs(diff_pct):.1f}% menos que {penya_nombre}")
+                            if col == 'goles_contra':
+                                # Para goles en contra, menos es mejor
+                                diferencias.append(f"**{metrica}**: Recibe un {abs(diff_pct):.1f}% menos de goles")
+                            else:
+                                diferencias.append(f"**{metrica}**: {abs(diff_pct):.1f}% menos")
             
             if diferencias:
                 for diff in diferencias:
                     st.markdown(f"- {diff}")
             else:
-                st.markdown("No se encontraron diferencias significativas en las métricas principales")
+                st.markdown("*No se encontraron diferencias significativas*")
         else:
-            st.warning("No se encontraron datos de Penya Independent en el análisis")
+            st.markdown("*Ya estás viendo el análisis de Penya Independent*")
+    
+    # SECCIÓN 4: Gráfico comparativo completo
+    if 'PENYA INDEPENDENT' not in equipo_seleccionado.upper():
+        # Gráfico comparativo
+        st.plotly_chart(
+            graficar_comparativa(
+                equipo_data, 
+                {k: penya_row[k] for k in equipo_data.index if k in penya_row}, 
+                f"Comparativa: {equipo_seleccionado} vs {penya_nombre}"
+            ), 
+            use_container_width=True
+        )
 
 if __name__ == "__main__":
     # Configurar la página
