@@ -415,8 +415,7 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo="Comparativa de M
         ('Goles en contra', 'goles_contra'),
         ('Tarj. Amarillas', 'Tarjetas Amarillas'),
         ('Tarj. Rojas', 'Tarjetas Rojas'),
-        ('Jugadores', 'jugador'),
-        ('Sustituciones', 'total_sustituciones')
+        ('Jugadores', 'jugador')
     ]
     
     # Filtrar métricas que existen en ambos conjuntos
@@ -428,12 +427,12 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo="Comparativa de M
     # Preparar datos para el gráfico
     nombres = [m[0] for m in metricas_filtradas]
     valores_equipo = [equipo_data[m[1]] for m in metricas_filtradas]
-    valores_cluster = [metricas_cluster[m[1]] for m in metricas_filtradas]
+    valores_comparacion = [metricas_cluster[m[1]] for m in metricas_filtradas]
     
     # Crear figura
     fig = go.Figure()
     
-    # Añadir barras para el equipo
+    # Añadir barras para el equipo seleccionado
     fig.add_trace(go.Bar(
         x=nombres,
         y=valores_equipo,
@@ -441,18 +440,20 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo="Comparativa de M
         marker_color=PENYA_PRIMARY_COLOR
     ))
     
-    # Añadir barras para la media del cluster
+    # Añadir barras para la comparación
     fig.add_trace(go.Bar(
         x=nombres,
-        y=valores_cluster,
-        name=f'Media Grupo {int(equipo_data["cluster"])}',
+        y=valores_comparacion,
+        name='Penya Independent',  # Nombre fijo en lugar de variable
         marker_color=PENYA_SECONDARY_COLOR
     ))
     
-    # Personalizar diseño
+    # Personalizar diseño para hacerlo más compacto
     fig.update_layout(
         title=titulo,
         barmode='group',
+        height=300,  # Reducir altura
+        margin=dict(l=20, r=20, t=40, b=20),  # Reducir márgenes
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -497,8 +498,6 @@ def main():
     fig_mapa = crear_mapa_equipos(datos_clustered)
     st.plotly_chart(fig_mapa, use_container_width=True)
     
-    # Eliminado: Elemento "Cómo interpretar este mapa"
-    
     # SECCIÓN 2: Selector de equipo y análisis
     st.markdown("---")
     
@@ -537,7 +536,7 @@ def main():
     # SECCIÓN 3: Análisis del equipo seleccionado
     st.subheader(f"Análisis de {equipo_seleccionado}")
     
-    # Dos columnas: información del equipo + comparativa con Penya
+    # Dividir en dos columnas para organizar mejor la información
     col_info, col_comparativa = st.columns([1, 1])
     
     with col_info:
@@ -563,8 +562,9 @@ def main():
         else:
             st.markdown("*No se encontraron otros equipos en el mismo grupo*")
     
-    # Reemplazar la sección de métricas con la comparativa directa
+    # Sección de comparación con Penya Independent
     with col_comparativa:
+        # Solo mostrar la comparativa si no es Penya Independent
         if 'PENYA INDEPENDENT' not in equipo_seleccionado.upper():
             st.markdown("#### Comparativa con Penya Independent:")
             
@@ -593,13 +593,13 @@ def main():
                         if diff_pct > 0:
                             if col == 'goles_contra':
                                 # Para goles en contra, más es peor
-                                diferencias.append(f"**{metrica}**: Recibe un {abs(diff_pct):.1f}% más de goles")
+                                diferencias.append(f"**{metrica}**: {abs(diff_pct):.1f}% más")
                             else:
                                 diferencias.append(f"**{metrica}**: {abs(diff_pct):.1f}% más")
                         else:
                             if col == 'goles_contra':
                                 # Para goles en contra, menos es mejor
-                                diferencias.append(f"**{metrica}**: Recibe un {abs(diff_pct):.1f}% menos de goles")
+                                diferencias.append(f"**{metrica}**: {abs(diff_pct):.1f}% menos")
                             else:
                                 diferencias.append(f"**{metrica}**: {abs(diff_pct):.1f}% menos")
             
@@ -608,20 +608,17 @@ def main():
                     st.markdown(f"- {diff}")
             else:
                 st.markdown("*No se encontraron diferencias significativas*")
-        else:
-            st.markdown("*Ya estás viendo el análisis de Penya Independent*")
-    
-    # SECCIÓN 4: Gráfico comparativo completo
-    if 'PENYA INDEPENDENT' not in equipo_seleccionado.upper():
-        # Gráfico comparativo
-        st.plotly_chart(
-            graficar_comparativa(
-                equipo_data, 
-                {k: penya_row[k] for k in equipo_data.index if k in penya_row}, 
-                f"Comparativa: {equipo_seleccionado} vs {penya_nombre}"
-            ), 
-            use_container_width=True
-        )
+            
+            # IMPORTANTE: Gráfico comparativo dentro de col_comparativa
+            # Esto asegura que aparezca al lado de la columna de info, no debajo
+            st.plotly_chart(
+                graficar_comparativa(
+                    equipo_data, 
+                    {k: penya_row[k] for k in equipo_data.index if k in penya_row},
+                    f"Comparativa: {equipo_seleccionado} vs {penya_nombre}"
+                ), 
+                use_container_width=True
+            )
 
 if __name__ == "__main__":
     # Configurar la página

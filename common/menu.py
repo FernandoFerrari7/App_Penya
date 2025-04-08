@@ -15,7 +15,7 @@ def crear_menu():
         {"nombre": "Inicio", "icono": "⚽"},
         {"nombre": "Equipo", "icono": "🧍🧍"},
         {"nombre": "Jugadores", "icono": "🧍"},
-        {"nombre": "ML", "icono": "🔍"}
+        {"nombre": "Análisis Comparativo", "icono": "🔍"}
     ]
     
     # Inicializar la selección actual
@@ -70,14 +70,11 @@ def crear_menu():
 def mostrar_pagina_actual():
     """
     Muestra la página correspondiente según la selección del menú
-    
-    Returns:
-        None
     """
     from home import main as main_home
     from pages.jugadores import main as main_jugadores
     from pages.equipos import main as main_equipos
-    from pages.ml import main as main_ml
+    from pages.ml import main as main_ml  # La importación sigue igual si no cambiaste el nombre del archivo
     
     pagina = st.session_state.pagina_actual
     
@@ -87,8 +84,7 @@ def mostrar_pagina_actual():
         main_jugadores()
     elif pagina == "Equipo":
         main_equipos()
-    elif pagina == "ML":
+    elif pagina == "Análisis Comparativo":  # Nombre actualizado
         main_ml()
     else:
         st.error(f"Página no encontrada: {pagina}")
-
