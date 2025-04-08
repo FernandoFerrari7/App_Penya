@@ -72,7 +72,8 @@ def dashboard_principal():
         'actas_penya': actas_penya,
         'goles_penya': goles_penya,
         'partidos_penya': partidos_penya,
-        'actas': data['actas']  # Datos completos necesarios para cálculos
+        'actas': data['actas'],  # Datos completos necesarios para cálculos
+        'goles_recibidos': goles_recibidos  # Añadir goles recibidos al diccionario para el PDF
     }
     
     # Métricas resumen con el botón de PDF en la misma línea

@@ -35,12 +35,12 @@ class PenyaPDF(FPDF):
             # Obtener la ruta base del proyecto
             base_path = Path(__file__).parent.parent
             
-            # Construir rutas absolutas para los logos
+            # Construir ruta absoluta para el logo de Penya (eliminamos el de FFIB)
             penya_logo = base_path / "assets" / "logo_penya.png"
-            ffib_logo = base_path / "assets" / "logo_ffib.png"
             
-            # Verificar y convertir las imágenes si es necesario
-            logo_width = 25
+            # Verificar y convertir la imagen si es necesario
+            # Reducir el tamaño del logo
+            logo_width = 15  # Reducido de 25 a 15
             
             if penya_logo.exists():
                 try:
@@ -62,32 +62,11 @@ class PenyaPDF(FPDF):
                         os.unlink(temp_penya)
                 except Exception as e:
                     print(f"Error al procesar logo_penya.png: {e}")
-            
-            if ffib_logo.exists():
-                try:
-                    # Abrir y verificar la imagen con PIL
-                    with Image.open(str(ffib_logo)) as img_ffib:
-                        # Convertir a RGB si es necesario
-                        if img_ffib.mode != 'RGB':
-                            img_ffib = img_ffib.convert('RGB')
-                        # Guardar en un buffer de memoria
-                        img_buffer = io.BytesIO()
-                        img_ffib.save(img_buffer, format='PNG')
-                        img_buffer.seek(0)
-                        # Guardar temporalmente
-                        temp_ffib = os.path.join(tempfile.gettempdir(), f'ffib_logo_{time.time_ns()}.png')
-                        with open(temp_ffib, 'wb') as f:
-                            f.write(img_buffer.getvalue())
-                        self.image(temp_ffib, 175, 8, logo_width)
-                        # Limpiar
-                        os.unlink(temp_ffib)
-                except Exception as e:
-                    print(f"Error al procesar logo_ffib.png: {e}")
                 
             # Título centrado
             self.set_font('Arial', 'B', 15)
-            self.set_xy(35, 8)
-            self.cell(140, 10, self.title, 0, 1, 'C')
+            self.set_xy(25, 8)  # Ajustado para que el título esté más a la izquierda
+            self.cell(160, 10, self.title, 0, 1, 'C')
             self.line(10, 25, 200, 25)
             self.ln(5)
             
@@ -100,9 +79,8 @@ class PenyaPDF(FPDF):
             self.ln(5)
 
     def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
+        # Pie de página vacío para eliminar el número de página
+        pass
 
     def add_metrics_row(self, metrics):
         """
@@ -199,7 +177,7 @@ def generate_home_pdf(data):
     Genera un PDF con el análisis general del equipo
     """
     try:
-        from calculos.calculo_equipo import calcular_estadisticas_generales
+        from calculos.calculo_equipo import calcular_estadisticas_generales, calcular_goles_contra
         from calculos.calculo_jugadores import (
             obtener_top_goleadores,
             obtener_top_amonestados,
@@ -222,45 +200,70 @@ def generate_home_pdf(data):
             data['partidos_penya'],
             "PENYA INDEPENDENT"
         )
+        
+        # Usar los goles recibidos que se pasaron desde home.py o calcularlos si no están
+        if 'goles_recibidos' in data:
+            goles_recibidos = data['goles_recibidos']
+        else:
+            # Calcular goles en contra como fallback
+            equipo_objetivo = "PENYA INDEPENDENT A"
+            try:
+                goles_recibidos = calcular_goles_contra(
+                    data['actas_penya'], 
+                    data['partidos_penya'],
+                    data['actas'],
+                    equipo_seleccionado=equipo_objetivo
+                )
+            except Exception as e:
+                print(f"Error al calcular goles en contra: {e}")
+                goles_recibidos = 0
 
-        # Añadir métricas básicas
+        # Añadir métricas básicas incluyendo goles recibidos
         metricas = [
             ('Partidos Jugados', estadisticas['partidos_jugados']),
             ('Goles Marcados', estadisticas['goles_marcados']),
+            ('Goles Recibidos', goles_recibidos),
             ('Tarjetas Amarillas', estadisticas['tarjetas_amarillas']),
             ('Tarjetas Rojas', estadisticas['tarjetas_rojas'])
         ]
+        
+        # Posicionar después del encabezado
+        pdf.set_y(35)  # Ajustado para evitar solapamiento
         pdf.add_metrics_row(metricas)
 
         # Título de la sección de jugadores
-        pdf.ln(5)
+        pdf.ln(10)
         pdf.set_font('Arial', 'B', 12)
         pdf.cell(0, 10, "Análisis de Jugadores", 0, 1, 'L')
-        pdf.ln(2)
+        pdf.ln(5)
 
-        # Preparar y añadir los gráficos
-        current_y = pdf.get_y()
-
-        # Gráfico de goleadores
+        # Preparar los gráficos
         top_goleadores = obtener_top_goleadores(data['actas_penya'], top_n=5)
+        top_amonestados = obtener_top_amonestados(data['actas_penya'], top_n=5)
+        top_minutos = obtener_jugadores_mas_minutos(data['actas_penya'], top_n=5)
+        
+        # Primera fila de gráficos
+        current_y = pdf.get_y()
+        
+        # Gráfico de goleadores (primera fila, izquierda)
         if not top_goleadores.empty:
             fig_goleadores = graficar_top_goleadores_home(top_goleadores, return_fig=True)
             if fig_goleadores:
-                pdf.add_plot(fig_goleadores, x=10, y=current_y, w=60)
-
-        # Gráfico de amonestados
-        top_amonestados = obtener_top_amonestados(data['actas_penya'], top_n=5)
+                pdf.add_plot(fig_goleadores, x=15, y=current_y, w=90)  # Ancho aumentado y centrado mejor
+        
+        # Gráfico de amonestados (primera fila, derecha)
         if not top_amonestados.empty:
             fig_amonestados = graficar_top_amonestados_home(top_amonestados, return_fig=True)
             if fig_amonestados:
-                pdf.add_plot(fig_amonestados, x=75, y=current_y, w=60)
-
-        # Gráfico de minutos jugados
-        top_minutos = obtener_jugadores_mas_minutos(data['actas_penya'], top_n=5)
+                pdf.add_plot(fig_amonestados, x=110, y=current_y, w=90)  # Ancho aumentado y posición ajustada
+        
+        # Segunda fila - Gráfico de minutos jugados
+        current_y = pdf.get_y() + 15  # Añadir más espacio entre filas para evitar solapamiento
+        
         if not top_minutos.empty:
             fig_minutos = graficar_minutos_jugados_home(top_minutos, return_fig=True)
             if fig_minutos:
-                pdf.add_plot(fig_minutos, x=140, y=current_y, w=60)
+                pdf.add_plot(fig_minutos, x=55, y=current_y, w=100)  # Gráfico centrado
 
         return pdf
     except Exception as e:
@@ -366,7 +369,7 @@ def generate_equipo_pdf(data, equipo_seleccionado):
         })
 
         # Añadir métricas al PDF
-        pdf.set_y(30)
+        pdf.set_y(35)
         for metrica in metricas:
             pdf.add_metrics_row([
                 (metrica['titulo'], f"{metrica['valor']} ({metrica['referencia']})")
@@ -453,7 +456,7 @@ def generate_jugador_pdf(data, jugador_seleccionado):
             ('Tarjetas Amarillas', estadisticas['tarjetas_amarillas']),
             ('Tarjetas Rojas', estadisticas['tarjetas_rojas'])
         ]
-        pdf.set_y(30)
+        pdf.set_y(35)
         pdf.add_metrics_row(metricas[:3])  # Primera fila
         pdf.add_metrics_row(metricas[3:])  # Segunda fila
 
@@ -527,7 +530,7 @@ def show_download_button(data, page_type, equipo_seleccionado=None, jugador_sele
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        background-color: #FF8C00;
+        background-color: #000000; /* Negro */
         color: white;
         padding: 0.5rem 1rem;
         border-radius: 0.25rem;
@@ -539,8 +542,13 @@ def show_download_button(data, page_type, equipo_seleccionado=None, jugador_sele
         transition: background-color 0.3s ease;
     }
     .btn-download:hover {
-        background-color: #FF6B00;
+        background-color: #333333; /* Hover a gris oscuro */
         text-decoration: none;
+        color: white; /* Mantener el texto en blanco en hover */
+    }
+    /* Asegurar que todos los elementos dentro del botón sean blancos */
+    .btn-download span, .btn-download i, .btn-download svg, .btn-download * {
+        color: white !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -593,7 +601,7 @@ def get_pdf_download_link(pdf, filename="informe.pdf"):
         
         # Generar el enlace de descarga
         b64_pdf = base64.b64encode(pdf_bytes).decode()
-        href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="{filename}" class="btn-download">⬇️ Descargar PDF</a>'
+        href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="{filename}" class="btn-download"><span style="color: white;">⬇️ Descargar PDF</span></a>'
         return href
         
     except Exception as e:
