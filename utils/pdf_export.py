@@ -248,6 +248,36 @@ def show_download_button(data, page_type, equipo_seleccionado=None, jugador_sele
                 )
             except ImportError:
                 st.error("Módulo de generación de PDF para jugadores no disponible")
+        elif page_type == 'ml' and equipo_seleccionado:
+            try:
+                # Importar la función específica para la página de análisis comparativo
+                from utils.pdf_ml import generate_ml_pdf
+                # Extraer los datos necesarios
+                datos_clustered = data['datos_clustered']
+                caracteristicas_clusters = data['caracteristicas_clusters']
+                mapa_fig = data['mapa_fig']
+                comparativa_fig = data['comparativa_fig'] if 'comparativa_fig' in data else None
+                
+                # Generar el PDF
+                pdf = generate_ml_pdf(
+                    data, 
+                    equipo_seleccionado, 
+                    datos_clustered, 
+                    caracteristicas_clusters, 
+                    mapa_fig, 
+                    comparativa_fig
+                )
+                
+                # Limpiar el nombre del equipo para el archivo
+                nombre_archivo = equipo_seleccionado.replace(" ", "_").replace("/", "_").lower()
+                st.markdown(
+                    get_pdf_download_link(pdf, f"analisis_comparativo_{nombre_archivo}.pdf"), 
+                    unsafe_allow_html=True
+                )
+            except ImportError as ie:
+                st.error(f"Módulo de generación de PDF para análisis comparativo no disponible: {str(ie)}")
+            except Exception as e:
+                st.error(f"Error al generar el PDF de análisis comparativo: {str(e)}")
         else:
             st.error("Tipo de página no válido o equipo/jugador no seleccionado")
     except ImportError as ie:
@@ -273,7 +303,7 @@ def get_pdf_download_link(pdf, filename="informe.pdf"):
             pdf_bytes = file.read()
         
         # Generar el enlace de descarga sin icono
-        b64_pdf = base64.b64encode(pdf_bytes).decode()
+        b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')  # Cambio a utf-8 en lugar de latin-1
         href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="{filename}" class="btn-download">Descargar PDF</a>'
         return href
         

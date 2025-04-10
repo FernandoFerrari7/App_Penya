@@ -8,6 +8,13 @@ from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, COLOR_TA
 def generate_equipo_pdf(data, equipo_seleccionado):
     """
     Genera un PDF con el análisis del equipo seleccionado
+    
+    Args:
+        data: Diccionario con todos los datos necesarios
+        equipo_seleccionado: Nombre del equipo para análisis
+        
+    Returns:
+        PenyaPDF: Objeto PDF generado
     """
     try:
         from calculos.calculo_equipo import (
@@ -36,12 +43,11 @@ def generate_equipo_pdf(data, equipo_seleccionado):
         import plotly.express as px
         import plotly.graph_objects as go
         
-        # Inicializar PDF
+        # Inicializar PDF con título mejorado
         pdf = PenyaPDF(title=f"Análisis del Equipo - {equipo_seleccionado}")
-        # Establecer auto_page_break en False para mantener todo en una página
-        pdf.set_auto_page_break(auto=False, margin=15)
+        pdf.set_auto_page_break(auto=True, margin=15)
         
-        # Filtrar datos del equipo (similar a filtrar_datos_equipo en equipos.py)
+        # Filtrar datos del equipo
         equipo_normalizado = normalizar_nombre_equipo(equipo_seleccionado)
         
         # Función para filtrar por equipo normalizado
@@ -89,15 +95,15 @@ def generate_equipo_pdf(data, equipo_seleccionado):
             (partidos_penya['link_acta'] != '')
         ].shape[0]
         
-        # Calcular métricas avanzadas
+        # Calcular métricas avanzadas con manejo de excepciones mejorado
         try:
             metricas_avanzadas = calcular_metricas_avanzadas(
                 partidos_penya, 
                 goles_penya, 
                 actas_penya, 
                 actas,
-                equipo_seleccionado,  # Pasar el equipo seleccionado como parámetro
-                data['medias_liga']   # Pasar las medias precalculadas
+                equipo_seleccionado,
+                data.get('medias_liga', {})
             )
             
             # Crear lista de métricas para mostrar
@@ -144,28 +150,44 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                 }
             ]
         except Exception as e:
-            # Si no se pueden calcular, usar valores predeterminados pero mantener partidos jugados correcto
-            print(f"No se pudieron calcular algunas métricas para el equipo seleccionado: {str(e)}")
+            print(f"Error en cálculo de métricas avanzadas: {str(e)}")
+            # Si hay error, usar cálculos básicos pero mantener consistencia
             
             # Calcular número de jugadores
             num_jugadores = actas_penya['jugador'].nunique()
             
-            # Calcular goles a favor
+            # Calcular goles a favor de forma robusta
             goles_favor = len(goles_penya)
             
-            # Calcular goles en contra
-            goles_contra = calcular_goles_contra(actas_penya, partidos_penya, actas, equipo_seleccionado)
+            # Calcular goles en contra de forma robusta
+            try:
+                goles_contra = calcular_goles_contra(actas_penya, partidos_penya, actas, equipo_seleccionado)
+            except Exception as e2:
+                print(f"Error al calcular goles en contra: {str(e2)}")
+                goles_contra = 0
             
-            # Calcular tarjetas amarillas propias
-            ta_propias = actas_penya['Tarjetas Amarillas'].sum()
+            # Calcular tarjetas de forma robusta
+            try:
+                ta_propias = actas_penya['Tarjetas Amarillas'].sum()
+                tr_propias = actas_penya['Tarjetas Rojas'].sum()
+                
+                # Calcular tarjetas rivales
+                tarjetas_rivales = calcular_tarjetas_rivales(actas, partidos_penya, equipo_seleccionado)
+                ta_rival = tarjetas_rivales['amarillas']
+                tr_rival = tarjetas_rivales['rojas']
+            except Exception as e3:
+                print(f"Error al calcular tarjetas: {str(e3)}")
+                ta_propias = tr_propias = ta_rival = tr_rival = 0
             
-            # Calcular tarjetas rojas propias
-            tr_propias = actas_penya['Tarjetas Rojas'].sum()
-            
-            # Calcular tarjetas rivales
-            tarjetas_rivales = calcular_tarjetas_rivales(actas, partidos_penya, equipo_seleccionado)
-            ta_rival = tarjetas_rivales['amarillas']
-            tr_rival = tarjetas_rivales['rojas']
+            # Obtener referencias o valores predeterminados
+            medias_liga = data.get('medias_liga', {})
+            ref_num_jugadores = medias_liga.get('ref_num_jugadores', "N/A")
+            ref_goles_favor = medias_liga.get('ref_goles_favor', "N/A")  
+            ref_goles_contra = medias_liga.get('ref_goles_contra', "N/A")
+            ref_ta_propias = medias_liga.get('ref_tarjetas_amarillas', "N/A")
+            ref_ta_rival = medias_liga.get('ref_ta_rival', "N/A") 
+            ref_tr_propias = medias_liga.get('ref_tarjetas_rojas', "N/A") 
+            ref_tr_rival = medias_liga.get('ref_tr_rival', "N/A")
             
             # Crear lista de métricas para mostrar
             metricas = [
@@ -177,37 +199,37 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                 {
                     'titulo': 'Num. Jugadores',
                     'valor': num_jugadores,
-                    'referencia': data['medias_liga']['ref_num_jugadores']
+                    'referencia': ref_num_jugadores
                 },
                 {
                     'titulo': 'Goles a favor',
                     'valor': goles_favor,
-                    'referencia': data['medias_liga']['ref_goles_favor']
+                    'referencia': ref_goles_favor
                 },
                 {
                     'titulo': 'Goles en contra',
                     'valor': goles_contra,
-                    'referencia': data['medias_liga']['ref_goles_contra']
+                    'referencia': ref_goles_contra
                 },
                 {
                     'titulo': 'Tarjetas Amarillas',
                     'valor': ta_propias,
-                    'referencia': data['medias_liga']['ref_tarjetas_amarillas']
+                    'referencia': ref_ta_propias
                 },
                 {
                     'titulo': 'TA Rival',
                     'valor': ta_rival,
-                    'referencia': data['medias_liga']['ref_ta_rival']
+                    'referencia': ref_ta_rival
                 },
                 {
                     'titulo': 'Tarjetas Rojas',
                     'valor': tr_propias,
-                    'referencia': data['medias_liga']['ref_tarjetas_rojas']
+                    'referencia': ref_tr_propias
                 },
                 {
                     'titulo': 'TR Rival',
                     'valor': tr_rival,
-                    'referencia': data['medias_liga']['ref_tr_rival']
+                    'referencia': ref_tr_rival
                 }
             ]
         
@@ -218,12 +240,14 @@ def generate_equipo_pdf(data, equipo_seleccionado):
         metrics_row = []
         for metrica in metricas:
             if metrica['referencia'] is not None:
-                metrics_row.append((metrica['titulo'], f"{metrica['valor']} ({metrica['referencia']})"))
+                metrics_row.append((
+                    metrica['titulo'], 
+                    f"{metrica['valor']} ({metrica['referencia']})"
+                ))
             else:
                 metrics_row.append((metrica['titulo'], f"{metrica['valor']}"))
-                
-        # Modificar la función add_metrics_row para usar tamaño de fuente más pequeño en esta primera fila
-        current_font_size = pdf.font_size_pt
+        
+        # Añadir la fila de métricas con tamaño optimizado
         pdf.set_font('Arial', '', 8)  # Tamaño más pequeño para los títulos
         
         # Calcular ancho de cada métrica
@@ -234,25 +258,26 @@ def generate_equipo_pdf(data, equipo_seleccionado):
             pdf.cell(metric_width, 6, title, 0, 0, 'C')
         pdf.ln()
         
-        # Valores
-        pdf.set_font('Arial', 'B', 12)  # Tamaño más pequeño para los valores
+        # Valores de métricas
+        pdf.set_font('Arial', 'B', 12)
         for _, value in metrics_row:
             pdf.cell(metric_width, 8, str(value), 0, 0, 'C')
         pdf.ln(15)
         
-        # Restaurar tamaño de fuente
-        pdf.set_font('Arial', '', current_font_size)
+        # Restaurar tamaño de fuente predeterminado
+        pdf.set_font('Arial', '', 12)
         
-        # ----- SECCIÓN DE GRÁFICOS -----
-        # Ajustar tamaños para que aprovechen mejor el espacio
-        graph_width = 85  # Ancho de los gráficos
+        # ----- SECCIÓN DE VISUALIZACIONES -----
+        # Mejorar distribución de gráficos:
+        # 1. Goles y Tarjetas en la primera fila
+        # 2. Minutos y Sustituciones en la segunda fila
         
-        # Mejor distribución vertical de gráficos en la página
-        # Dejamos un margen superior menor y espaciamos más los gráficos
-        top_row_y = 60  # Primera fila de gráficos
-        bottom_row_y = 170  # Segunda fila de gráficos
+        # Configuración de visualizaciones
+        graph_width = 85  # Ancho estándar para los gráficos
+        top_row_y = 60    # Primera fila de gráficos
+        bottom_row_y = 170 # Segunda fila de gráficos
         
-        # 1. Gráfico de Goles por Jugador (cuadrante superior izquierdo)
+        # 1. SECCIÓN DE GOLES (izquierda superior)
         pdf.set_font('Arial', 'B', 11)
         pdf.set_xy(10, top_row_y)
         pdf.cell(graph_width, 10, "Goles", 0, 1, 'L')
@@ -260,10 +285,10 @@ def generate_equipo_pdf(data, equipo_seleccionado):
         try:
             goles_jugador = analizar_goles_por_jugador(goles_penya, actas_penya)
             if not goles_jugador.empty:
-                # Mostrar todos los jugadores que tienen al menos un gol (hasta un máx de 15)
+                # Mostrar hasta 15 jugadores con goles
                 df = goles_jugador.head(15).copy()
                 
-                # Crear un gráfico más alto que ancho
+                # Crear gráfico de barras horizontales
                 fig = px.bar(
                     df,
                     y='jugador',
@@ -273,23 +298,21 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     color_discrete_sequence=[PENYA_PRIMARY_COLOR]
                 )
                 
-                # Configurar el gráfico para que sea más alto que ancho y con mejor margen para nombres
+                # Optimizar diseño del gráfico
                 fig.update_layout(
                     yaxis={'categoryorder': 'total ascending'},
                     xaxis_title='Goles',
                     yaxis_title='',
                     showlegend=False,
-                    margin=dict(l=130, r=30, t=10, b=30),  # Aumentar aún más el margen izquierdo para nombres
-                    width=300,  # Ancho fijo
-                    height=300,  # Aumentar la altura para acomodar más jugadores
-                    autosize=False,  # Desactivar autosize
-                    # Mostrar nombres completos
-                    yaxis_tickfont=dict(size=8),  # Texto más pequeño para acomodar nombres completos
-                    # Controlar altura de barras para que sean más altas
-                    bargap=0.15,  # Reducir aún más el espacio entre barras
+                    margin=dict(l=130, r=30, t=10, b=30),
+                    width=300,
+                    height=300,
+                    autosize=False,
+                    yaxis_tickfont=dict(size=8),
+                    bargap=0.15,
                 )
                 
-                # Mostrar los valores en las barras
+                # Mostrar valores en las barras
                 fig.update_traces(
                     texttemplate='%{x}', 
                     textposition='outside',
@@ -303,21 +326,21 @@ def generate_equipo_pdf(data, equipo_seleccionado):
         except Exception as e:
             print(f"Error al generar gráfico de goles por jugador: {e}")
             pdf.set_xy(10, top_row_y + 40)
-            pdf.cell(graph_width, 10, "Error al generar gráfico de goles", 0, 1, 'C')
+            pdf.cell(graph_width, 10, "Error al generar gráfico", 0, 1, 'C')
         
-        # 2. Gráfico de Tarjetas por Jugador (cuadrante superior derecho)
+        # 2. SECCIÓN DE TARJETAS (derecha superior)
         pdf.set_xy(105, top_row_y)
         pdf.cell(graph_width, 10, "Tarjetas", 0, 1, 'L')
         
         try:
             tarjetas_jugador = analizar_tarjetas_por_jugador(actas_penya)
             if not tarjetas_jugador.empty:
-                # Mostrar más jugadores (15 en lugar de 10)
-                # Ordenar por el total de tarjetas (rojas + amarillas) para mostrar los más relevantes
+                # Ordenar por total de tarjetas
                 tarjetas_jugador['total_tarjetas'] = tarjetas_jugador['Tarjetas Amarillas'] + tarjetas_jugador['Tarjetas Rojas'] * 2
                 tarjetas_jugador = tarjetas_jugador.sort_values('total_tarjetas', ascending=False)
                 df = tarjetas_jugador.head(15).copy()
                 
+                # Gráfico de barras apiladas para tarjetas
                 fig = go.Figure()
                 
                 # Primero rojas, luego amarillas
@@ -327,10 +350,10 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     name='Rojas',
                     orientation='h',
                     marker=dict(color=COLOR_TARJETAS_ROJAS),
-                    text=df['Tarjetas Rojas'],  # Añadir valores
-                    textposition='auto',  # Posicionar automáticamente
-                    insidetextanchor='middle',  # Anclar en el medio
-                    textangle=0  # Forzar texto horizontal dentro de las barras
+                    text=df['Tarjetas Rojas'],
+                    textposition='auto',
+                    insidetextanchor='middle',
+                    textangle=0
                 ))
                 
                 fig.add_trace(go.Bar(
@@ -339,18 +362,18 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     name='Amarillas',
                     orientation='h',
                     marker=dict(color=COLOR_TARJETAS_AMARILLAS),
-                    text=df['Tarjetas Amarillas'],  # Añadir valores
-                    textposition='auto',  # Posicionar automáticamente
-                    insidetextanchor='middle',  # Anclar en el medio
-                    textangle=0  # Forzar texto horizontal dentro de las barras
+                    text=df['Tarjetas Amarillas'],
+                    textposition='auto',
+                    insidetextanchor='middle',
+                    textangle=0
                 ))
                 
-                # Configurar el gráfico para que sea más alto que ancho y con mejor margen para nombres
+                # Optimizar diseño
                 fig.update_layout(
                     xaxis_title='Número de Tarjetas',
                     yaxis_title='',
                     barmode='stack',
-                    yaxis={'categoryorder': 'total descending'},  # Reordenar de mayor a menor
+                    yaxis={'categoryorder': 'total descending'},
                     legend=dict(
                         orientation="h",
                         yanchor="bottom",
@@ -358,14 +381,12 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                         xanchor="right",
                         x=1
                     ),
-                    margin=dict(l=130, r=30, t=30, b=30),  # Aumentar aún más el margen izquierdo para nombres
-                    width=300,  # Ancho fijo
-                    height=300,  # Aumentar la altura para acomodar más jugadores
-                    autosize=False,  # Desactivar autosize
-                    # Mostrar nombres completos
-                    yaxis_tickfont=dict(size=8),  # Texto más pequeño para acomodar nombres completos
-                    # Controlar altura de barras para que sean más altas
-                    bargap=0.15,  # Reducir aún más el espacio entre barras
+                    margin=dict(l=130, r=30, t=30, b=30),
+                    width=300,
+                    height=300,
+                    autosize=False,
+                    yaxis_tickfont=dict(size=8),
+                    bargap=0.15,
                 )
                 
                 # Asegurar que los valores sean visibles
@@ -376,20 +397,20 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                 pdf.set_xy(105, top_row_y + 40)
                 pdf.cell(graph_width, 10, "No hay datos de tarjetas", 0, 1, 'C')
         except Exception as e:
-            print(f"Error al generar gráfico de tarjetas por jugador: {e}")
+            print(f"Error al generar gráfico de tarjetas: {e}")
             pdf.set_xy(105, top_row_y + 40)
-            pdf.cell(graph_width, 10, "Error al generar gráfico de tarjetas", 0, 1, 'C')
+            pdf.cell(graph_width, 10, "Error al generar gráfico", 0, 1, 'C')
         
-        # 3. Gráfico de Minutos por Jugador - Local vs Visitante (cuadrante inferior izquierdo)
+        # 3. SECCIÓN DE MINUTOS (izquierda inferior)
         pdf.set_xy(10, bottom_row_y)
         pdf.cell(graph_width, 10, "Minutos por Jugador", 0, 1, 'L')
         
         try:
             minutos_jugador = analizar_minutos_por_jugador(actas_penya)
             if not minutos_jugador.empty:
-                # Mostrar más jugadores (15 en lugar de 10)
                 df = minutos_jugador.head(15).copy()
                 
+                # Gráfico de minutos jugados
                 fig = go.Figure()
                 
                 # Minutos como local
@@ -399,10 +420,10 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     name='Local',
                     orientation='h',
                     marker=dict(color=PENYA_PRIMARY_COLOR),
-                    text=df['minutos_local'],  # Añadir valores
-                    textposition='auto',  # Posicionar automáticamente
-                    insidetextanchor='middle',  # Anclar en el medio
-                    textangle=0  # Forzar texto horizontal dentro de las barras
+                    text=df['minutos_local'],
+                    textposition='auto',
+                    insidetextanchor='middle',
+                    textangle=0
                 ))
                 
                 # Minutos como visitante
@@ -412,12 +433,13 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     name='Visitante',
                     orientation='h',
                     marker=dict(color='#36A2EB' if PENYA_SECONDARY_COLOR is None else PENYA_SECONDARY_COLOR),
-                    text=df['minutos_visitante'],  # Añadir valores
-                    textposition='auto',  # Posicionar automáticamente
-                    insidetextanchor='middle',  # Anclar en el medio
-                    textangle=0  # Forzar texto horizontal dentro de las barras
+                    text=df['minutos_visitante'],
+                    textposition='auto',
+                    insidetextanchor='middle',
+                    textangle=0
                 ))
                 
+                # Optimizar diseño
                 fig.update_layout(
                     yaxis={'categoryorder': 'total ascending'},
                     xaxis_title='Minutos Jugados',
@@ -430,14 +452,12 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                         xanchor="right",
                         x=1
                     ),
-                    margin=dict(l=130, r=30, t=30, b=30),  # Aumentar aún más el margen izquierdo para nombres
-                    width=300,  # Ancho fijo
-                    height=300,  # Aumentar la altura para acomodar más jugadores
-                    autosize=False,  # Desactivar autosize
-                    # Mostrar nombres completos
-                    yaxis_tickfont=dict(size=8),  # Texto más pequeño para acomodar nombres completos
-                    # Controlar altura de barras para que sean más altas
-                    bargap=0.15,  # Reducir aún más el espacio entre barras
+                    margin=dict(l=130, r=30, t=30, b=30),
+                    width=300,
+                    height=300,
+                    autosize=False,
+                    yaxis_tickfont=dict(size=8),
+                    bargap=0.15,
                 )
                 
                 # Asegurar que los valores sean visibles
@@ -448,21 +468,21 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                 pdf.set_xy(10, bottom_row_y + 40)
                 pdf.cell(graph_width, 10, "No hay datos de minutos jugados", 0, 1, 'C')
         except Exception as e:
-            print(f"Error al generar gráfico de minutos por jugador: {e}")
+            print(f"Error al generar gráfico de minutos: {e}")
             pdf.set_xy(10, bottom_row_y + 40)
-            pdf.cell(graph_width, 10, "Error al generar gráfico de minutos", 0, 1, 'C')
+            pdf.cell(graph_width, 10, "Error al generar gráfico", 0, 1, 'C')
         
-        # 4. Distribución de Sustituciones (cuadrante inferior derecho)
+        # 4. SECCIÓN DE SUSTITUCIONES (derecha inferior)
         pdf.set_xy(105, bottom_row_y)
         pdf.cell(graph_width, 10, "Distribución de Sustituciones", 0, 1, 'L')
         
         try:
             # Comprobar si hay datos de sustituciones
             if not sustituciones_penya.empty:
-                # Calcular distribución de sustituciones con un rango de 5 minutos
+                # Calcular distribución de sustituciones
                 sustituciones_data = analizar_distribucion_sustituciones(sustituciones_penya, rango_minutos=5)
                 
-                # Gráfico de distribución de sustituciones por minuto
+                # Gráfico de distribución de sustituciones
                 fig = px.bar(
                     sustituciones_data['distribucion_minutos'],
                     x='rango',
@@ -471,24 +491,24 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     color_discrete_sequence=[PENYA_SECONDARY_COLOR]
                 )
                 
-                # Configurar el gráfico con una altura apropiada
+                # Optimizar diseño
                 fig.update_layout(
-                    xaxis_title='',  # Quitar el título del eje X para evitar sobreposición
+                    xaxis_title='',
                     yaxis_title='Número de Sustituciones',
                     showlegend=False,
-                    margin=dict(l=40, r=10, t=10, b=60),  # Aumentar el margen inferior para el título del eje X
-                    width=300,  # Ancho fijo
-                    height=150,  # Altura reducida para dejar espacio a las métricas
+                    margin=dict(l=40, r=10, t=10, b=60),
+                    width=300,
+                    height=150,
                     autosize=False,
                 )
                 
-                # Mover el título de "Rango de Minutos" hacia abajo
+                # Título del eje X con espacio adicional
                 fig.update_xaxes(
                     title_text="Rango de Minutos",
-                    title_standoff=25  # Distancia entre el eje y el título
+                    title_standoff=25
                 )
                 
-                # Mostrar los valores en las barras
+                # Mostrar valores en barras
                 fig.update_traces(
                     texttemplate='%{y}', 
                     textposition='outside',
@@ -497,10 +517,10 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                 
                 pdf.add_plot(fig, x=105, y=bottom_row_y + 10, w=graph_width)
                 
-                # Calcular la posición Y después del gráfico
+                # Calcular posición Y para métricas de sustituciones
                 sust_metrics_y = pdf.get_y() + 5
                 
-                # Métricas de sustituciones en una fila debajo del gráfico
+                # Métricas de sustituciones en una fila
                 sust_metrics = [
                     ('Minuto Medio', f"{sustituciones_data['minuto_medio']:.1f}'"),
                     ('Primera Sust.', f"{sustituciones_data['primera_sustitucion']:.1f}'"),
@@ -508,11 +528,11 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     ('Núm. Medio', f"{sustituciones_data['num_medio_sustituciones']:.1f}")
                 ]
                 
-                # Añadir las métricas de sustituciones debajo del gráfico correspondiente
+                # Añadir métricas de sustituciones
                 pdf.set_y(sust_metrics_y)
                 pdf.set_x(105)
                 
-                # Usar tamaño de letra más pequeño para las métricas de sustituciones
+                # Usar tamaño de letra más pequeño
                 current_font_size = pdf.font_size_pt
                 pdf.set_font('Arial', '', 8)
                 
@@ -534,13 +554,18 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                 pdf.set_font('Arial', '', current_font_size)
             else:
                 pdf.set_xy(105, bottom_row_y + 40)
-                pdf.cell(graph_width, 10, "No hay datos de sustituciones disponibles", 0, 1, 'C')
+                pdf.cell(graph_width, 10, "No hay datos de sustituciones", 0, 1, 'C')
         except Exception as e:
             print(f"Error al generar análisis de sustituciones: {e}")
             pdf.set_xy(105, bottom_row_y + 40)
-            pdf.cell(graph_width, 10, f"Error al generar análisis de sustituciones", 0, 1, 'C')
+            pdf.cell(graph_width, 10, "Error al generar análisis", 0, 1, 'C')
         
         return pdf
     except Exception as e:
-        print(f"Error al generar el PDF: {str(e)}")
-        raise e
+        print(f"Error general al generar el PDF de equipo: {str(e)}")
+        # Crear un PDF simple con mensaje de error
+        pdf = PenyaPDF(title=f"Error al generar análisis - {equipo_seleccionado}")
+        pdf.set_y(50)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.multi_cell(0, 10, f"Se produjo un error al generar el PDF: {str(e)}", 0, 'C')
+        return pdf

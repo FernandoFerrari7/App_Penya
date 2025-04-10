@@ -15,6 +15,7 @@ from utils.data import cargar_datos
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR
 from utils.ui import page_config
 from calculos.calculo_equipo import calcular_goles_contra
+from utils.pdf_export import show_download_button  
 
 def limpiar_nombre_equipo(nombre):
     """
@@ -400,12 +401,25 @@ def crear_mapa_equipos(datos_clustered):
             itemclick=False,
             itemdoubleclick=False
         ),
-        title=None
+        title=None,
+        # Ampliar los límites del gráfico para evitar superposición de texto
+        xaxis=dict(
+            range=[pca_df['PCA1'].min() * 1.2, pca_df['PCA1'].max() * 1.2],
+            showgrid=True,
+            gridcolor='rgba(211,211,211,0.3)'
+        ),
+        yaxis=dict(
+            range=[pca_df['PCA2'].min() * 1.2, pca_df['PCA2'].max() * 1.2],
+            showgrid=True,
+            gridcolor='rgba(211,211,211,0.3)'
+        ),
+        width=800,  # Ancho mayor para el gráfico en la app
+        height=600  # Altura mayor para el gráfico en la app
     )
     
     return fig
 
-def graficar_comparativa(equipo_data, metricas_cluster, titulo="Comparativa de Métricas"):
+def graficar_comparativa(equipo_data, metricas_cluster, titulo=None):
     """
     Gráfico de barras comparando un equipo con la media de su cluster
     """
@@ -437,7 +451,9 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo="Comparativa de M
         x=nombres,
         y=valores_equipo,
         name=f'{equipo_data["equipo_limpio"]}',
-        marker_color=PENYA_PRIMARY_COLOR
+        marker_color=PENYA_PRIMARY_COLOR,
+        text=valores_equipo,  # Mostrar valores en las barras
+        textposition='auto'   # Posición automática del texto
     ))
     
     # Añadir barras para la comparación
@@ -445,11 +461,14 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo="Comparativa de M
         x=nombres,
         y=valores_comparacion,
         name='Penya Independent',  # Nombre fijo en lugar de variable
-        marker_color=PENYA_SECONDARY_COLOR
+        marker_color=PENYA_SECONDARY_COLOR,
+        text=valores_comparacion,  # Mostrar valores en las barras
+        textposition='auto'        # Posición automática del texto
     ))
     
     # Personalizar diseño para hacerlo más compacto
     fig.update_layout(
+        # Eliminamos el título del gráfico o lo usamos si se proporciona
         title=titulo,
         barmode='group',
         height=300,  # Reducir altura
@@ -493,8 +512,37 @@ def main():
     # Generar características de clusters
     caracteristicas_clusters = generar_caracteristicas_cluster(datos_clustered)
     
-    # SECCIÓN 1: Mapa de equipos
-    st.subheader("Análisis de similitud de equipos")
+    # SECCIÓN 1: Mapa de equipos con botón de descarga a la derecha
+    col1, col2 = st.columns([4, 1])
+    
+    # Título en la columna izquierda
+    with col1:
+        st.subheader("Análisis de similitud de equipos")
+    
+    # Selector de equipo y botón en columna derecha
+    with col2:
+        # Crear un contenedor para datos PDF (inicialmente vacío)
+        pdf_data = {
+            'datos_clustered': datos_clustered,
+            'caracteristicas_clusters': caracteristicas_clusters,
+            'mapa_fig': None,  # Se asignará después
+            'comparativa_fig': None  # Se asignará si es necesario
+        }
+        
+        # Estilo para el botón alineado a la derecha
+        st.markdown("""
+        <style>
+        div.stButton > button {
+            float: right;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Mostrar botón de descarga sin equipo seleccionado aún
+        # (El equipo se seleccionará más adelante)
+        st.text("")  # Espacio para alinear el botón verticalmente con el título
+    
+    # Mostrar el gráfico de dispersión
     fig_mapa = crear_mapa_equipos(datos_clustered)
     st.plotly_chart(fig_mapa, use_container_width=True)
     
@@ -609,16 +657,24 @@ def main():
             else:
                 st.markdown("*No se encontraron diferencias significativas*")
             
-            # IMPORTANTE: Gráfico comparativo dentro de col_comparativa
-            # Esto asegura que aparezca al lado de la columna de info, no debajo
-            st.plotly_chart(
-                graficar_comparativa(
-                    equipo_data, 
-                    {k: penya_row[k] for k in equipo_data.index if k in penya_row},
-                    f"Comparativa: {equipo_seleccionado} vs {penya_nombre}"
-                ), 
-                use_container_width=True
+            # Gráfico comparativo sin título (quitamos el parámetro del título)
+            comparativa_fig = graficar_comparativa(
+                equipo_data, 
+                {k: penya_row[k] for k in equipo_data.index if k in penya_row}
             )
+            st.plotly_chart(comparativa_fig, use_container_width=True)
+        else:
+            st.markdown("#### Información:")
+            st.markdown("Este es el análisis de Penya Independent, por lo que no se realiza comparación consigo mismo.")
+            comparativa_fig = None  # No hay gráfico comparativo cuando es Penya Independent
+    
+    # Actualizar los datos del PDF para incluir el equipo seleccionado y las figuras
+    pdf_data['mapa_fig'] = fig_mapa
+    pdf_data['comparativa_fig'] = comparativa_fig if 'PENYA INDEPENDENT' not in equipo_seleccionado.upper() else None
+    
+    # Actualizar el botón de descarga en la columna superior derecha
+    with col2:
+        show_download_button(pdf_data, 'ml', equipo_seleccionado=equipo_seleccionado)
 
 if __name__ == "__main__":
     # Configurar la página
