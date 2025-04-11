@@ -314,6 +314,7 @@ def generar_caracteristicas_cluster(datos_clustered):
     
     return caracteristicas_clusters
 
+# Modificación para la función crear_mapa_equipos
 def crear_mapa_equipos(datos_clustered):
     """
     Crea una visualización 2D de los equipos usando PCA
@@ -401,20 +402,91 @@ def crear_mapa_equipos(datos_clustered):
             itemclick=False,
             itemdoubleclick=False
         ),
-        title=None,
+        title=None,  # Eliminamos el título para evitar "undefined"
         # Ampliar los límites del gráfico para evitar superposición de texto
         xaxis=dict(
             range=[pca_df['PCA1'].min() * 1.2, pca_df['PCA1'].max() * 1.2],
             showgrid=True,
-            gridcolor='rgba(211,211,211,0.3)'
+            gridcolor='rgba(211,211,211,0.3)',
+            title=None  # Eliminamos título del eje X
         ),
         yaxis=dict(
             range=[pca_df['PCA2'].min() * 1.2, pca_df['PCA2'].max() * 1.2],
             showgrid=True,
-            gridcolor='rgba(211,211,211,0.3)'
+            gridcolor='rgba(211,211,211,0.3)',
+            title=None  # Eliminamos título del eje Y
         ),
         width=800,  # Ancho mayor para el gráfico en la app
         height=600  # Altura mayor para el gráfico en la app
+    )
+    
+    return fig
+
+# Modificación para la función graficar_comparativa
+def graficar_comparativa(equipo_data, metricas_cluster, titulo=None):
+    """
+    Gráfico de barras comparando un equipo con la media de su cluster
+    """
+    # Seleccionar métricas relevantes para comparar
+    metricas_comparar = [
+        ('Goles a favor', 'goles'),
+        ('Goles en contra', 'goles_contra'),
+        ('Tarj. Amarillas', 'Tarjetas Amarillas'),
+        ('Tarj. Rojas', 'Tarjetas Rojas'),
+        ('Jugadores', 'jugador')
+    ]
+    
+    # Filtrar métricas que existen en ambos conjuntos
+    metricas_filtradas = []
+    for nombre, col in metricas_comparar:
+        if col in equipo_data and col in metricas_cluster:
+            metricas_filtradas.append((nombre, col))
+    
+    # Preparar datos para el gráfico
+    nombres = [m[0] for m in metricas_filtradas]
+    valores_equipo = [equipo_data[m[1]] for m in metricas_filtradas]
+    valores_comparacion = [metricas_cluster[m[1]] for m in metricas_filtradas]
+    
+    # Crear figura
+    fig = go.Figure()
+    
+    # Añadir barras para el equipo seleccionado
+    fig.add_trace(go.Bar(
+        x=nombres,
+        y=valores_equipo,
+        name=f'{equipo_data["equipo_limpio"]}',
+        marker_color=PENYA_PRIMARY_COLOR,
+        text=valores_equipo,  # Mostrar valores en las barras
+        textposition='auto'   # Posición automática del texto
+    ))
+    
+    # Añadir barras para la comparación
+    fig.add_trace(go.Bar(
+        x=nombres,
+        y=valores_comparacion,
+        name='Penya Independent',  # Nombre fijo en lugar de variable
+        marker_color=PENYA_SECONDARY_COLOR,
+        text=valores_comparacion,  # Mostrar valores en las barras
+        textposition='auto'        # Posición automática del texto
+    ))
+    
+    # Personalizar diseño para hacerlo más compacto
+    fig.update_layout(
+        # Eliminamos completamente el título o lo establecemos explícitamente a ""
+        title="",  # Título vacío en lugar de None o título pasado como parámetro
+        barmode='group',
+        height=300,  # Reducir altura
+        margin=dict(l=20, r=20, t=40, b=20),  # Reducir márgenes
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        ),
+        # Eliminar títulos de ejes para evitar undefined
+        xaxis_title="",
+        yaxis_title=""
     )
     
     return fig
@@ -468,8 +540,8 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo=None):
     
     # Personalizar diseño para hacerlo más compacto
     fig.update_layout(
-        # Eliminamos el título del gráfico o lo usamos si se proporciona
-        title=titulo,
+        # Título vacío explícito en lugar de None o título pasado como parámetro
+        title="",
         barmode='group',
         height=300,  # Reducir altura
         margin=dict(l=20, r=20, t=40, b=20),  # Reducir márgenes
@@ -479,7 +551,10 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo=None):
             y=1.02,
             xanchor="right",
             x=1
-        )
+        ),
+        # Eliminar títulos de ejes para evitar undefined
+        xaxis_title="",
+        yaxis_title=""
     )
     
     return fig
@@ -534,6 +609,15 @@ def main():
         <style>
         div.stButton > button {
             float: right;
+        }
+        /* Eliminar etiquetas "undefined" */
+        .js-plotly-plot .plotly .gtitle {
+            display: none !important;
+        }
+        /* Ocultar títulos de ejes que puedan mostrar undefined */
+        .js-plotly-plot .plotly .xtitle, 
+        .js-plotly-plot .plotly .ytitle {
+            display: none !important;
         }
         </style>
         """, unsafe_allow_html=True)
@@ -660,7 +744,8 @@ def main():
             # Gráfico comparativo sin título (quitamos el parámetro del título)
             comparativa_fig = graficar_comparativa(
                 equipo_data, 
-                {k: penya_row[k] for k in equipo_data.index if k in penya_row}
+                {k: penya_row[k] for k in equipo_data.index if k in penya_row},
+                titulo=""  # Título vacío explícito
             )
             st.plotly_chart(comparativa_fig, use_container_width=True)
         else:

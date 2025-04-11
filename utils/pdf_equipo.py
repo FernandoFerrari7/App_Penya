@@ -368,12 +368,12 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     textangle=0
                 ))
                 
-                # Optimizar diseño
+                # Optimizar diseño - CAMBIO: Invertir orden para que los que más tienen estén arriba
                 fig.update_layout(
                     xaxis_title='Número de Tarjetas',
                     yaxis_title='',
                     barmode='stack',
-                    yaxis={'categoryorder': 'total descending'},
+                    yaxis={'categoryorder': 'total descending'},  # Cambio de ascending a descending
                     legend=dict(
                         orientation="h",
                         yanchor="bottom",
@@ -420,10 +420,10 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     name='Local',
                     orientation='h',
                     marker=dict(color=PENYA_PRIMARY_COLOR),
-                    text=df['minutos_local'],
-                    textposition='auto',
-                    insidetextanchor='middle',
-                    textangle=0
+                    text=df['minutos_local'],  # CAMBIO: Añadir valores en las barras
+                    textposition='auto',       # CAMBIO: Posición automática del texto
+                    insidetextanchor='middle', # CAMBIO: Ancla del texto
+                    textangle=0                # CAMBIO: Ángulo del texto
                 ))
                 
                 # Minutos como visitante
@@ -433,10 +433,10 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     name='Visitante',
                     orientation='h',
                     marker=dict(color='#36A2EB' if PENYA_SECONDARY_COLOR is None else PENYA_SECONDARY_COLOR),
-                    text=df['minutos_visitante'],
-                    textposition='auto',
-                    insidetextanchor='middle',
-                    textangle=0
+                    text=df['minutos_visitante'],  # CAMBIO: Añadir valores en las barras
+                    textposition='auto',           # CAMBIO: Posición automática del texto
+                    insidetextanchor='middle',     # CAMBIO: Ancla del texto
+                    textangle=0                    # CAMBIO: Ángulo del texto
                 ))
                 
                 # Optimizar diseño

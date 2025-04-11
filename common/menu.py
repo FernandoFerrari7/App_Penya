@@ -74,7 +74,7 @@ def mostrar_pagina_actual():
     from home import main as main_home
     from pages.jugadores import main as main_jugadores
     from pages.equipos import main as main_equipos
-    from pages.ml import main as main_ml  # La importación sigue igual si no cambiaste el nombre del archivo
+    from pages.ml import main as main_ml  
     
     pagina = st.session_state.pagina_actual
     
@@ -84,7 +84,7 @@ def mostrar_pagina_actual():
         main_jugadores()
     elif pagina == "Equipo":
         main_equipos()
-    elif pagina == "Análisis Comparativo":  # Nombre actualizado
+    elif pagina == "Análisis Comparativo":  
         main_ml()
     else:
         st.error(f"Página no encontrada: {pagina}")
