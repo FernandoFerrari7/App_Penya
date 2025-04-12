@@ -26,8 +26,9 @@ def crear_menu():
     header_cols = st.columns([1, 4, 1])
     
     # Logo en la primera columna
+    # Aumentamos el tamaño del logo de 70 a 100px para hacerlo más visible
     with header_cols[0]:
-        st.image("assets/logo_penya.png", width=70)
+        st.image("assets/logo_penya.png", width=100)
     
     # Menú en la columna central
     with header_cols[1]:

@@ -315,9 +315,13 @@ def generar_caracteristicas_cluster(datos_clustered):
     return caracteristicas_clusters
 
 # Modificación para la función crear_mapa_equipos
-def crear_mapa_equipos(datos_clustered):
+def crear_mapa_equipos(datos_clustered, colores_cluster=None):
     """
     Crea una visualización 2D de los equipos usando PCA
+
+    Args:
+        datos_clustered: DataFrame con datos de los equipos
+        colores_cluster: Lista de colores para los clusters (opcional)
     """
     # Características para PCA
     features = [col for col in datos_clustered.columns if col not in ['equipo_limpio', 'cluster']]
@@ -341,14 +345,15 @@ def crear_mapa_equipos(datos_clustered):
     # Encontrar Penya Independent
     penya_data = pca_df[pca_df['Equipo'].str.contains('PENYA INDEPENDENT', case=False)]
     
-    # Definir colores más intensos para los clusters - usando un azul mucho más oscuro para cluster 1
-    colores_cluster = [
-        '#00397A',  # Azul muy oscuro para el Grupo 1
-        '#d62728',  # Rojo
-        '#2ca02c',  # Verde
-        '#9467bd',  # Púrpura
-        '#8c564b',  # Marrón
-        '#e377c2'   # Rosa
+    # Definir colores más intensos para los clusters 
+    if colores_cluster is None:
+        colores_cluster = [
+            '#00397A',  # Azul muy oscuro para el Grupo 1
+            '#d62728',  # Rojo
+            '#2ca02c',  # Verde
+            '#9467bd',  # Púrpura
+            '#8c564b',  # Marrón
+            '#e377c2'   # Rosa
     ]
     
     # Crear gráfico con puntos del mismo tamaño (quitando size='Goles')
@@ -420,7 +425,7 @@ def crear_mapa_equipos(datos_clustered):
         height=600  # Altura mayor para el gráfico en la app
     )
     
-    return fig
+    return fig, colores_cluster
 
 # Modificación para la función graficar_comparativa
 def graficar_comparativa(equipo_data, metricas_cluster, titulo=None):
@@ -627,7 +632,7 @@ def main():
         st.text("")  # Espacio para alinear el botón verticalmente con el título
     
     # Mostrar el gráfico de dispersión
-    fig_mapa = crear_mapa_equipos(datos_clustered)
+    fig_mapa, colores_cluster = crear_mapa_equipos(datos_clustered)
     st.plotly_chart(fig_mapa, use_container_width=True)
     
     # SECCIÓN 2: Selector de equipo y análisis
@@ -756,7 +761,8 @@ def main():
     # Actualizar los datos del PDF para incluir el equipo seleccionado y las figuras
     pdf_data['mapa_fig'] = fig_mapa
     pdf_data['comparativa_fig'] = comparativa_fig if 'PENYA INDEPENDENT' not in equipo_seleccionado.upper() else None
-    
+    pdf_data['cluster_colors'] = colores_cluster  # Añadir los colores de los clusters
+
     # Actualizar el botón de descarga en la columna superior derecha
     with col2:
         show_download_button(pdf_data, 'ml', equipo_seleccionado=equipo_seleccionado)

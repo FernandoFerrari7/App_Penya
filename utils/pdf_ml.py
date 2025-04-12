@@ -49,6 +49,26 @@ def generate_ml_pdf(data, equipo_seleccionado, datos_clustered, caracteristicas_
         pdf.set_font('Arial', 'B', 12)
         pdf.cell(0, 10, "Análisis de similitud de equipos", 0, 1, 'L')
         
+        # NUEVA SECCIÓN: Asegurarse de preservar los colores en el mapa
+        # Si los colores de cluster están disponibles en data, aplicarlos a la figura
+        if 'cluster_colors' in data:
+            # Definir colores para cada cluster
+            colores_cluster = data['cluster_colors']
+            
+            # Asegurarse de que cada trace tenga el color correspondiente
+            for trace in mapa_fig.data:
+                # Si el nombre del trace incluye "Grupo X", asignar el color correspondiente
+                for i, color in enumerate(colores_cluster):
+                    if f"Grupo {i+1}" in trace.name:
+                        if hasattr(trace, 'marker'):
+                            trace.marker.color = color
+                
+                # Asegurarse de que Penya Independent tenga el color naranja característico
+                if trace.name == 'Penya Independent':
+                    if hasattr(trace, 'marker'):
+                        trace.marker.color = PENYA_PRIMARY_COLOR
+                        trace.marker.symbol = "star"
+        
         # Agregar el gráfico de dispersión con dimensiones ampliadas para mejor legibilidad
         pdf.add_plot(mapa_fig, x=10, y=None, w=180, h=120)  # Aumentar altura para mayor legibilidad
         
