@@ -34,12 +34,12 @@ class PenyaPDF(FPDF):
             # Obtener la ruta base del proyecto
             base_path = Path(__file__).parent.parent
             
-            # Construir ruta absoluta para el logo de Penya (eliminamos el de FFIB)
+            # Construir ruta absoluta para el logo de Penya 
             penya_logo = base_path / "assets" / "logo_penya.png"
             
             # Verificar y convertir la imagen si es necesario
             # Reducir el tamaño del logo
-            logo_width = 15  # Reducido de 25 a 15
+            logo_width = 15  
             
             if penya_logo.exists():
                 try:
@@ -64,7 +64,7 @@ class PenyaPDF(FPDF):
                 
             # Título centrado
             self.set_font('Arial', 'B', 15)
-            self.set_xy(25, 8)  # Ajustado para que el título esté más a la izquierda
+            self.set_xy(25, 8)  
             self.cell(160, 10, self.title, 0, 1, 'C')
             self.line(10, 25, 200, 25)
             self.ln(5)
@@ -305,7 +305,7 @@ def get_pdf_download_link(pdf, filename="informe.pdf"):
             pdf_bytes = file.read()
         
         # Generar el enlace de descarga sin icono
-        b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')  # Cambio a utf-8 en lugar de latin-1
+        b64_pdf = base64.b64encode(pdf_bytes).decode('utf-8') 
         href = f'<a href="data:application/pdf;base64,{b64_pdf}" download="{filename}" class="btn-download">Descargar PDF</a>'
         return href
         

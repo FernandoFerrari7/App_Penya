@@ -59,7 +59,7 @@ def generate_home_pdf(data):
         ]
         
         # Posicionar después del encabezado
-        pdf.set_y(35)  # Ajustado para evitar solapamiento
+        pdf.set_y(35) 
         pdf.add_metrics_row(metricas)
 
         # Título de la sección de jugadores
@@ -80,16 +80,16 @@ def generate_home_pdf(data):
         if not top_goleadores.empty:
             fig_goleadores = graficar_top_goleadores_home(top_goleadores, return_fig=True)
             if fig_goleadores:
-                pdf.add_plot(fig_goleadores, x=15, y=current_y, w=90)  # Ancho aumentado y centrado mejor
+                pdf.add_plot(fig_goleadores, x=15, y=current_y, w=90)  
         
         # Gráfico de amonestados (primera fila, derecha)
         if not top_amonestados.empty:
             fig_amonestados = graficar_top_amonestados_home(top_amonestados, return_fig=True)
             if fig_amonestados:
-                pdf.add_plot(fig_amonestados, x=110, y=current_y, w=90)  # Ancho aumentado y posición ajustada
+                pdf.add_plot(fig_amonestados, x=110, y=current_y, w=90) 
         
         # Segunda fila - Gráfico de minutos jugados
-        current_y = pdf.get_y() + 15  # Añadir más espacio entre filas para evitar solapamiento
+        current_y = pdf.get_y() + 15  
         
         if not top_minutos.empty:
             fig_minutos = graficar_minutos_jugados_home(top_minutos, return_fig=True)

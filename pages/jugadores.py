@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 
 # Importar módulos propios
 from utils.data import cargar_datos
-from utils.ui import page_config  # Solo importar page_config, no show_sidebar
+from utils.ui import page_config  
 from calculos.calculo_jugadores import calcular_estadisticas_jugador, ajustar_tarjetas_por_doble_amarilla, analizar_goles_por_tiempo
 from utils.constants import PENYA_PRIMARY_COLOR, PENYA_SECONDARY_COLOR, COLOR_TARJETAS_AMARILLAS, COLOR_TARJETAS_ROJAS
 from utils.pdf_export import show_download_button
@@ -81,7 +81,7 @@ def mostrar_tarjeta_jugador(estadisticas):
         }
     ]
     
-    # Mostrar tarjetas de métricas en 8 columnas (una al lado de otra)
+    # Mostrar tarjetas de métricas en 8 columnas 
     cols = st.columns(8)
     
     for i, metrica in enumerate(metricas):
@@ -303,7 +303,7 @@ def main():
                             tick0=0,
                             dtick=1
                         ),
-                        height=400  # Fijar altura para mantener consistencia
+                        height=400  
                     )
                     
                     # Mostrar el gráfico

@@ -76,7 +76,7 @@ def generate_jugador_pdf(data, jugador_seleccionado):
         # Añadir separador
         pdf.ln(5)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-        pdf.ln(5)  # Reducido el espacio después de la línea
+        pdf.ln(5)  
         
         # Configuración común para visualizaciones
         section_start_y = pdf.get_y()  # Y donde comienzan las secciones principales
@@ -121,10 +121,10 @@ def generate_jugador_pdf(data, jugador_seleccionado):
                 yaxis_range=[0, 100],
                 legend_title="Condición",
                 showlegend=True,
-                margin=dict(l=40, r=10, t=20, b=30),  # Aumentado margen izquierdo para evitar solapamiento
-                height=130,  # Aumentado para que se vea menos achatado
+                margin=dict(l=40, r=10, t=20, b=30),  
+                height=130,  
                 width=350,
-                font=dict(size=8)  # Reducir tamaño de fuente
+                font=dict(size=8) 
             )
             
             # Actualizar leyenda
@@ -227,11 +227,11 @@ def generate_jugador_pdf(data, jugador_seleccionado):
                 x_pos += col_widths[idx]
             pdf.ln()
             
-            # Datos de la tabla - MODIFICADO: Mejor manejo del espacio
-            pdf.set_font('Arial', '', 6)  # Tamaño de letra reducido
+            # Datos de la tabla 
+            pdf.set_font('Arial', '', 6)  
             
-            # SOLUCIÓN: Reducir la altura de las filas para mostrar más datos
-            row_height = 4  # Reducido de 5 a 4
+           
+            row_height = 4  
             
             # Calcular altura disponible para la tabla
             remaining_space = 280 - pdf.get_y()  

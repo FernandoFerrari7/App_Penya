@@ -392,8 +392,6 @@ def analizar_distribucion_sustituciones(sustituciones_df, rango_minutos=5):
     Returns:
         dict: Diccionario con diferentes análisis de sustituciones
     """
-    import pandas as pd
-    import numpy as np
     
     if sustituciones_df.empty:
         return {}

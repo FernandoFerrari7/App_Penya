@@ -362,7 +362,7 @@ def crear_mapa_equipos(datos_clustered, colores_cluster=None):
         x='PCA1', 
         y='PCA2', 
         color='Cluster',
-        text='Equipo',  # Añadir nombres de equipos como etiquetas
+        text='Equipo',  
         hover_name='Equipo',
         color_discrete_sequence=colores_cluster
     )
@@ -407,22 +407,22 @@ def crear_mapa_equipos(datos_clustered, colores_cluster=None):
             itemclick=False,
             itemdoubleclick=False
         ),
-        title=None,  # Eliminamos el título para evitar "undefined"
+        title=None,  
         # Ampliar los límites del gráfico para evitar superposición de texto
         xaxis=dict(
             range=[pca_df['PCA1'].min() * 1.2, pca_df['PCA1'].max() * 1.2],
             showgrid=True,
             gridcolor='rgba(211,211,211,0.3)',
-            title=None  # Eliminamos título del eje X
+            title=None  
         ),
         yaxis=dict(
             range=[pca_df['PCA2'].min() * 1.2, pca_df['PCA2'].max() * 1.2],
             showgrid=True,
             gridcolor='rgba(211,211,211,0.3)',
-            title=None  # Eliminamos título del eje Y
+            title=None  
         ),
-        width=800,  # Ancho mayor para el gráfico en la app
-        height=600  # Altura mayor para el gráfico en la app
+        width=800,  
+        height=600  
     )
     
     return fig, colores_cluster
@@ -481,7 +481,7 @@ def graficar_comparativa(equipo_data, metricas_cluster, titulo=None):
         title="",  # Título vacío en lugar de None o título pasado como parámetro
         barmode='group',
         height=300,  # Reducir altura
-        margin=dict(l=20, r=20, t=40, b=20),  # Reducir márgenes
+        margin=dict(l=20, r=20, t=40, b=20),  
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -581,7 +581,7 @@ def main():
             st.error(f"Error al preparar datos: {str(e)}")
             return
     
-    # Realizar clustering - cambiado a 4 clusters
+    # Realizar clustering
     with st.spinner('Realizando análisis de patrones tácticos...'):
         try:
             datos_clustered = realizar_clustering(datos_equipos, n_clusters=4)
@@ -601,12 +601,12 @@ def main():
     
     # Selector de equipo y botón en columna derecha
     with col2:
-        # Crear un contenedor para datos PDF (inicialmente vacío)
+        # Crear un contenedor para datos PDF 
         pdf_data = {
             'datos_clustered': datos_clustered,
             'caracteristicas_clusters': caracteristicas_clusters,
-            'mapa_fig': None,  # Se asignará después
-            'comparativa_fig': None  # Se asignará si es necesario
+            'mapa_fig': None,  
+            'comparativa_fig': None  
         }
         
         # Estilo para el botón alineado a la derecha
@@ -629,7 +629,7 @@ def main():
         
         # Mostrar botón de descarga sin equipo seleccionado aún
         # (El equipo se seleccionará más adelante)
-        st.text("")  # Espacio para alinear el botón verticalmente con el título
+        st.text("")  
     
     # Mostrar el gráfico de dispersión
     fig_mapa, colores_cluster = crear_mapa_equipos(datos_clustered)

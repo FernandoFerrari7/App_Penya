@@ -73,7 +73,7 @@ def graficar_tarjetas_por_jornada(tarjetas_df, return_fig=False):
     fig.update_layout(
         xaxis_title='Jornada',
         yaxis_title='Número de Tarjetas',
-        margin=dict(l=10, r=10, t=10, b=10),  # Márgenes más pequeños para PDF
+        margin=dict(l=10, r=10, t=10, b=10),  
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -124,7 +124,7 @@ def graficar_goles_por_tiempo(goles_por_tiempo, return_fig=False):
         xaxis_title='Rango de Minutos',
         yaxis_title='Número de Goles',
         showlegend=False,
-        margin=dict(l=10, r=10, t=10, b=10)  # Márgenes más pequeños para PDF
+        margin=dict(l=10, r=10, t=10, b=10)  
     )
     
     # Personalizar tooltip
@@ -172,7 +172,7 @@ def graficar_tipos_goles(tipos_goles, return_fig=False):
     )
     
     fig.update_layout(
-        margin=dict(l=10, r=10, t=10, b=10),  # Márgenes más pequeños para PDF
+        margin=dict(l=10, r=10, t=10, b=10),  
         showlegend=False
     )
     

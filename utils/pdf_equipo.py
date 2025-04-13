@@ -248,7 +248,7 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                 metrics_row.append((metrica['titulo'], f"{metrica['valor']}"))
         
         # Añadir la fila de métricas con tamaño optimizado
-        pdf.set_font('Arial', '', 8)  # Tamaño más pequeño para los títulos
+        pdf.set_font('Arial', '', 8)  
         
         # Calcular ancho de cada métrica
         metric_width = 190 / len(metrics_row)
@@ -268,9 +268,6 @@ def generate_equipo_pdf(data, equipo_seleccionado):
         pdf.set_font('Arial', '', 12)
         
         # ----- SECCIÓN DE VISUALIZACIONES -----
-        # Mejorar distribución de gráficos:
-        # 1. Goles y Tarjetas en la primera fila
-        # 2. Minutos y Sustituciones en la segunda fila
         
         # Configuración de visualizaciones
         graph_width = 85  # Ancho estándar para los gráficos
@@ -368,12 +365,11 @@ def generate_equipo_pdf(data, equipo_seleccionado):
                     textangle=0
                 ))
                 
-                # Optimizar diseño - CAMBIO: Invertir orden para que los que más tienen estén arriba
                 fig.update_layout(
                     xaxis_title='Número de Tarjetas',
                     yaxis_title='',
                     barmode='stack',
-                    yaxis={'categoryorder': 'total descending'},  # Cambio de ascending a descending
+                    yaxis={'categoryorder': 'total descending'},  
                     legend=dict(
                         orientation="h",
                         yanchor="bottom",

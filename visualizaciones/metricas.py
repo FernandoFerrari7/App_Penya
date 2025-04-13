@@ -14,7 +14,7 @@ def tarjeta_metrica(titulo, valor, valor_referencia=None, color_valor="#FF8C00")
         valor_referencia: Valor de referencia (ej. media de la liga) para mostrar entre paréntesis
         color_valor: Color del valor principal
     """
-    # Estilo CSS para la tarjeta (versión más compacta)
+    # Estilo CSS para la tarjeta 
     tarjeta_style = f"""
     <style>
     .metric-card {{

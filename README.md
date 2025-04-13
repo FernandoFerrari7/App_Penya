@@ -23,6 +23,7 @@ AppPenya/
 ├── pages/                # Páginas de la aplicación
 ├── utils/                # Funciones auxiliares
 ├── visualizaciones/      # Componentes visuales
+├── app.py/               # Punto de entrada de la aplicación
 ├── home.py               # Página principal
 ├── README.md             # Documentación
 └── requirements.txt      # Dependencias

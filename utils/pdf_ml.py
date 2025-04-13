@@ -70,7 +70,7 @@ def generate_ml_pdf(data, equipo_seleccionado, datos_clustered, caracteristicas_
                         trace.marker.symbol = "star"
         
         # Agregar el gráfico de dispersión con dimensiones ampliadas para mejor legibilidad
-        pdf.add_plot(mapa_fig, x=10, y=None, w=180, h=120)  # Aumentar altura para mayor legibilidad
+        pdf.add_plot(mapa_fig, x=10, y=None, w=180, h=120) 
         
         # Añadir separador
         pdf.ln(5)
@@ -171,7 +171,7 @@ def generate_ml_pdf(data, equipo_seleccionado, datos_clustered, caracteristicas_
             if diferencias:
                 for diff in diferencias:
                     pdf.set_x(right_column_x + 5)  # Sangría para los bullets
-                    pdf.multi_cell(col_width - 5, 5, f"- {diff}", 0, 'L')  # Reemplazado • por -
+                    pdf.multi_cell(col_width - 5, 5, f"- {diff}", 0, 'L')  
             else:
                 pdf.set_x(right_column_x + 5)
                 pdf.multi_cell(col_width - 5, 5, "No se encontraron diferencias significativas", 0, 'L')
@@ -182,7 +182,7 @@ def generate_ml_pdf(data, equipo_seleccionado, datos_clustered, caracteristicas_
                 pdf.add_plot(comparativa_fig, x=right_column_x, y=None, w=col_width)
         else:
             # Si el equipo seleccionado es Penya, mostrar un mensaje
-            pdf.set_xy(right_column_x, current_y - 65)  # Ajustar según sea necesario
+            pdf.set_xy(right_column_x, current_y - 65)  
             pdf.set_font('Arial', 'B', 10)
             pdf.cell(col_width, 6, "Información:", 0, 1, 'L')
             

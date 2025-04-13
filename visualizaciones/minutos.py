@@ -42,8 +42,8 @@ def graficar_minutos_por_jugador(minutos_df, top_n=15, return_fig=False):
         xaxis_title='Minutos Jugados',
         yaxis_title='',
         showlegend=False,
-        height=400 if return_fig else 600,  # Altura más compacta para PDF
-        margin=dict(l=10, r=10, t=10, b=10)  # Márgenes más pequeños para PDF
+        height=400 if return_fig else 600,  
+        margin=dict(l=10, r=10, t=10, b=10)  
     )
     
     # Personalizar tooltip
@@ -234,21 +234,19 @@ def graficar_distribucion_sustituciones(sustituciones_data):
     
     # Pestaña 2: Sustituciones por Jornada
     with tab2:
-        # Crear gráfico de líneas para sustituciones por jornada - CAMBIO: Quitar título
+        # Crear gráfico de líneas para sustituciones por jornada 
         fig = px.line(
             sustituciones_data['sustituciones_jornada'],
             x='Jornada',
             y='cantidad',
-            # CAMBIO: Quitar título
+            
             # title='Sustituciones por Jornada',
             labels={'cantidad': 'Número de Sustituciones'},
             markers=True,
             color_discrete_sequence=[PENYA_PRIMARY_COLOR]
         )
         
-        # Personalizar el gráfico y forzar que las y vayan de 0 a 5 sin decimales
-        # CAMBIO: Ajustar el rango de Y para que vaya de 0 a 6 para evitar cortar los puntos superiores
-        # y usar menos espacio en blanco debajo
+        
         fig.update_layout(
             xaxis_title='Jornada',
             yaxis_title='Número de Sustituciones',
@@ -257,7 +255,7 @@ def graficar_distribucion_sustituciones(sustituciones_data):
                 tickmode='linear',
                 tick0=0,
                 dtick=1,
-                range=[0, 6]  # Cambio de 0-5 a 0-6 para evitar cortar puntos
+                range=[0, 6]  
             )
         )
         
@@ -278,9 +276,9 @@ def graficar_distribucion_sustituciones(sustituciones_data):
             "Minutos desde el Banquillo"
         ])
         
-        # Sub-pestaña 1: Sustituciones más repetidas - CAMBIO: Quitar título
+        # Sub-pestaña 1: Sustituciones más repetidas - 
         with subtab1:
-            # CAMBIO: Quitar título
+            
             # st.subheader("Top 5 Sustituciones más Repetidas")
             st.dataframe(
                 sustituciones_data['top_sustituciones'],
@@ -288,9 +286,9 @@ def graficar_distribucion_sustituciones(sustituciones_data):
                 use_container_width=True
             )
         
-        # Sub-pestaña 2: Jugadores más sustituidos - CAMBIO: Quitar título
+        # Sub-pestaña 2: Jugadores más sustituidos 
         with subtab2:
-            # CAMBIO: Quitar título
+            
             # st.subheader("Top 5 Jugadores más Sustituidos")
             st.dataframe(
                 sustituciones_data['top_sustituidos'],
@@ -298,9 +296,9 @@ def graficar_distribucion_sustituciones(sustituciones_data):
                 use_container_width=True
             )
         
-        # Sub-pestaña 3: Jugadores con más minutos desde el banquillo - CAMBIO: Quitar título
+        # Sub-pestaña 3: Jugadores con más minutos desde el banquillo 
         with subtab3:
-            # CAMBIO: Quitar título
+            
             # st.subheader("Top 5 Jugadores con más Minutos desde el Banquillo")
             st.dataframe(
                 sustituciones_data['top_suplentes'],
@@ -308,7 +306,7 @@ def graficar_distribucion_sustituciones(sustituciones_data):
                 use_container_width=True
             )
     
-    # Crear una fila para las métricas de sustituciones - CAMBIO AQUÍ: Mismo tamaño para todas las tarjetas
+    # Crear una fila para las métricas de sustituciones
     col1, col2, col3, col4 = st.columns(4)
     
     # Estilo CSS común para todas las tarjetas (mismo tamaño)

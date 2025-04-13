@@ -9,8 +9,8 @@ import plotly.graph_objects as go
 
 # Importar módulos propios
 from utils.data import cargar_datos
-from utils.ui import page_config  # Solo importar page_config
-from utils.pdf_export import show_download_button  # Añadir importación
+from utils.ui import page_config  
+from utils.pdf_export import show_download_button  
 from calculos.calculo_equipo import (
     obtener_rivales_con_goles, 
     analizar_tarjetas_por_jornada, 
@@ -203,7 +203,7 @@ def main():
         st.write("")
         
     with col3:
-        # Añadir el botón de PDF en la misma línea que el selector, más a la derecha
+        # Añadir el botón de PDF en la misma línea que el selector
         if equipo_seleccionado:  # Solo mostrar el botón si hay un equipo seleccionado
             show_download_button(data=data, page_type='equipo', equipo_seleccionado=equipo_seleccionado.strip())
     
@@ -365,7 +365,7 @@ def main():
         
         with gol_tab1:
             try:
-                # Goles por jugador - CAMBIO: Quitar título del gráfico
+                # Goles por jugador 
                 goles_jugador = analizar_goles_por_jugador(datos_equipo['goles_penya'], datos_equipo['actas_penya'])
                 fig = px.bar(
                     goles_jugador,
@@ -394,7 +394,7 @@ def main():
         
         with gol_tab2:
             try:
-                # Distribución de goles por minuto - CAMBIO: Quitar título del gráfico y usar solo valores enteros en eje Y
+                # Distribución de goles por minuto 
                 goles_tiempo = analizar_goles_por_tiempo(datos_equipo['goles_penya'])
                 df = goles_tiempo.reset_index()
                 df.columns = ['Rango', 'Goles']
@@ -411,7 +411,7 @@ def main():
                     xaxis_title='Rango de Minutos',
                     yaxis_title='Número de Goles',
                     showlegend=False,
-                    # CAMBIO: Forzar valores enteros en el eje Y
+                    
                     yaxis=dict(
                         tickmode='linear',
                         tick0=0,
@@ -429,7 +429,7 @@ def main():
         
         with gol_tab3:
             try:
-                # Tipos de goles - CAMBIO: Quitar título del gráfico y referencias (ya están en el gráfico)
+                # Tipos de goles 
                 tipos_goles = analizar_tipos_goles(datos_equipo['goles_penya'])
                 df = tipos_goles.reset_index()
                 df.columns = ['Tipo', 'Cantidad']
@@ -442,7 +442,7 @@ def main():
                 )
                 
                 fig.update_layout(
-                    showlegend=False  # CAMBIO: Quitar leyenda ya que la información ya está en las etiquetas
+                    showlegend=False  
                 )
                 
                 fig.update_traces(
@@ -458,10 +458,10 @@ def main():
     
     # Sección de Visualizaciones de Tarjetas
     with col_tarjetas:
-        # CAMBIO: Agregar título "Tarjetas"
+        
         st.subheader("Tarjetas")
         
-        # Tabs para diferentes visualizaciones de tarjetas en el orden solicitado
+        
         tarjeta_tab1, tarjeta_tab2 = st.tabs([
             "Tarjetas por Jugador",
             "Tarjetas por Jornada"
@@ -469,13 +469,13 @@ def main():
         
         with tarjeta_tab1:
             try:
-                # Análisis de tarjetas por jugador (todos los jugadores) - CAMBIO: Quitar título y invertir orden de referencias
+                # Análisis de tarjetas por jugador (todos los jugadores) 
                 tarjetas_jugador = analizar_tarjetas_por_jugador(datos_equipo['actas_penya'])
                 
                 # Crear gráfico de barras apiladas con orden invertido de las leyendas
                 fig = go.Figure()
                 
-                # CAMBIO: Invertir orden - Primero rojas, luego amarillas
+                
                 fig.add_trace(go.Bar(
                     y=tarjetas_jugador['jugador'],
                     x=tarjetas_jugador['Tarjetas Rojas'],
@@ -517,7 +517,7 @@ def main():
         
         with tarjeta_tab2:
             try:
-                # Análisis de tarjetas por jornada - CAMBIO: Quitar título
+                # Análisis de tarjetas por jornada 
                 tarjetas_jornada = analizar_tarjetas_por_jornada(datos_equipo['actas_penya'])
                 
                 fig = go.Figure()
@@ -563,33 +563,33 @@ def main():
     # Separador
     st.markdown("---")
     
-    # CAMBIO: Colocar en la misma fila "Minutos por Jugador" y "Distribución de Sustituciones"
+    
     col_minutos, col_sustituciones = st.columns(2)
     
-    # Sección de Análisis de Minutos (columna izquierda)
+    # Sección de Análisis de Minutos 
     with col_minutos:
-        # CAMBIO: Actualizar título de "Análisis de Minutos por Jugador" a "Minutos por Jugador"
+        
         st.subheader("Minutos por Jugador")
         
         try:
             # Calcular datos de minutos
             minutos_jugador = analizar_minutos_por_jugador(datos_equipo['actas_penya'])
             
-            # Pestañas para los diferentes análisis de minutos (solo dos pestañas)
+            # Pestañas para los diferentes análisis de minutos 
             minutos_tab1, minutos_tab2 = st.tabs([
                 "Local vs Visitante", 
                 "Titular vs Suplente"
             ])
             
             with minutos_tab1:
-                # CAMBIO: Quitar título del gráfico e invertir barras pero manteniendo orden de las referencias (Local, Visitante)
+               
                 # Desglose local vs visitante
                 df = minutos_jugador.head(30).copy()
                 
                 # Crear figura
                 fig = go.Figure()
                 
-                # CAMBIO: Primero local (naranja), luego visitante, pero manteniendo mismo orden de referencias
+                
                 fig.add_trace(go.Bar(
                     y=df['jugador'],
                     x=df['minutos_local'],
@@ -624,14 +624,14 @@ def main():
                 st.plotly_chart(fig, use_container_width=True)
             
             with minutos_tab2:
-                # CAMBIO: Quitar título del gráfico e invertir barras pero manteniendo orden de las referencias (Titular, Suplente)
+                
                 # Desglose titular vs suplente
                 df = minutos_jugador.head(30).copy()
                 
                 # Crear figura
                 fig = go.Figure()
                 
-                # CAMBIO: Primero titular (naranja), luego suplente, pero manteniendo mismo orden de referencias
+                
                 fig.add_trace(go.Bar(
                     y=df['jugador'],
                     x=df['minutos_titular'],
