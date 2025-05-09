@@ -2,23 +2,26 @@ import os
 import subprocess
 import datetime
 
-# Este script debe guardarse en la misma carpeta que lectura_actas_v2.py
-
 def ejecutar_comando(comando):
-    """Ejecuta un comando y muestra su salida"""
+    """Ejecuta un comando y muestra su salida de forma más clara"""
     print(f"Ejecutando: {comando}")
     
     # Ejecutar el comando y capturar su salida
     proceso = subprocess.run(comando, shell=True, text=True, 
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
-    # Mostrar la salida
+    # Mostrar la salida estándar
     if proceso.stdout:
-        print(f"Salida: {proceso.stdout}")
+        print("Salida del comando:")
+        print(proceso.stdout)
     
-    # Mostrar errores si los hay
-    if proceso.stderr:
-        print(f"Error: {proceso.stderr}")
+    # Mostrar mensajes de stderr (que no siempre son errores en Git)
+    if proceso.stderr and proceso.returncode == 0:
+        print("Mensajes informativos:")
+        print(proceso.stderr)
+    elif proceso.stderr:
+        print("ERROR:")
+        print(proceso.stderr)
     
     # Verificar si el comando se ejecutó con éxito
     return proceso.returncode == 0
@@ -49,13 +52,14 @@ def main():
     mensaje_commit = f"Actualización automática de datos: {fecha_actual}"
     
     if not ejecutar_comando(f'git commit -m "{mensaje_commit}"'):
-        print("❌ Error al crear commit. Puede que no haya cambios para commitear.")
+        print("⚠️ No se creó ningún commit. Puede que no haya cambios para commitear.")
         # No abortamos aquí, ya que podría ser que simplemente no haya cambios
     else:
         print("✅ Commit creado correctamente")
     
     # Paso 4: Subir cambios a GitHub
     print("\n--- Paso 4: Subiendo cambios a GitHub ---")
+    # Usar la rama master (o cambia a main u otra si es necesario)
     if not ejecutar_comando("git push origin master"):
         print("❌ Error al subir cambios a GitHub.")
         return
