@@ -80,6 +80,24 @@ def crear_menu():
     if 'pagina_actual' not in st.session_state:
         st.session_state.pagina_actual = "Inicio"
     
+    # Aplicar CSS para alinear los botones del menú
+    st.markdown("""
+    <style>
+    /* Estilo para asegurar que todos los botones del menú tengan la misma altura */
+    div[data-testid="stHorizontalBlock"] button {
+        height: 40px !important;
+        line-height: 1.2 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0.5em !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        vertical-align: middle !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Crear contenedor principal con tres columnas para la cabecera
     header_cols = st.columns([1, 4, 1])
     
@@ -120,20 +138,39 @@ def crear_menu():
             # Crear dos columnas para los botones
             btn_cols = st.columns(2)
             
+            # Aplicar estilos consistentes para los botones de actualizar y cerrar sesión
+            st.markdown("""
+            <style>
+            /* Estilo para el botón de Actualizar */
+            div[data-testid="column"]:nth-of-type(1) button {
+                font-size: 0.9em !important;
+                padding: 0.5em !important;
+                height: 43px !important;
+                min-height: 43px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            
+            /* Estilo para el botón de Cerrar Sesión */
+            div[data-testid="column"]:nth-of-type(2) button {
+                font-size: 0.9em !important;
+                padding: 0.5em !important;
+                height: 43px !important;
+                min-height: 43px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                box-sizing: border-box !important;
+            }
+            </style>
+            """, unsafe_allow_html=True)
+            
             # Botón de Actualizar Información
             with btn_cols[0]:
-                # Estilo para hacer el botón más pequeño
-                st.markdown("""
-                <style>
-                div[data-testid="column"]:nth-of-type(1) button {
-                    font-size: 0.85em;
-                    padding: 0.2em 0.5em;
-                    height: auto;
-                    min-height: 0;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-                
                 if st.button("🔄 Actualizar", key="btn_update", use_container_width=True):
                     # Ejecutar la actualización cuando se presiona el botón
                     actualizacion_exitosa = ejecutar_actualizacion()
@@ -144,18 +181,6 @@ def crear_menu():
             
             # Botón de Cerrar Sesión
             with btn_cols[1]:
-                # Estilo para hacer el botón más pequeño
-                st.markdown("""
-                <style>
-                div[data-testid="column"]:nth-of-type(2) button {
-                    font-size: 0.85em;
-                    padding: 0.2em 0.5em;
-                    height: auto;
-                    min-height: 0;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-                
                 if st.button("Cerrar Sesión", key="btn_logout", type="primary", use_container_width=True):
                     # Importamos la función aquí para evitar importaciones circulares
                     from common.login import cerrar_sesion
