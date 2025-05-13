@@ -20,38 +20,36 @@ def ejecutar_actualizacion():
             # Verificar que el script existe
             if not os.path.exists(script_path):
                 st.error(f"No se encontró el script en la ruta: {script_path}")
+                print(f"Error: No se encontró el script en la ruta: {script_path}")
                 return False
             
-            # Configurar entorno para usar codificación UTF-8 en Windows
-            env = os.environ.copy()
-            env["PYTHONIOENCODING"] = "utf-8"
-            
-            # Ejecutar el script de Python completo (sin cambiar directorios)
-            process = subprocess.run(
+            # Ejecutar el script de Python (sin capturar la salida para que vaya a la terminal)
+            # Esto permitirá ver la salida en tiempo real en la terminal donde se ejecuta Streamlit
+            process = subprocess.Popen(
                 [sys.executable, script_path],
-                capture_output=True,
+                stdout=None,  # Usar la terminal actual
+                stderr=None,  # Usar la terminal actual
                 text=True,
-                env=env,
-                errors="replace"
+                env=os.environ.copy()
             )
-        
-        # Verificar el resultado
-        if process.returncode == 0:
-            st.success("✅ Datos actualizados correctamente")
-            # Mostrar logs en un expander para no ocupar demasiado espacio
-            with st.expander("Ver detalles de la actualización"):
-                st.code(process.stdout)
-            return True
-        else:
-            st.error("❌ Error al actualizar los datos")
-            with st.expander("Ver detalles del error"):
-                st.code(process.stderr)
-            return False
+            
+            # Esperar a que termine el proceso
+            return_code = process.wait()
+            
+            # Verificar el resultado
+            if return_code == 0:
+                st.success("✅ Datos actualizados correctamente")
+                return True
+            else:
+                st.error("❌ Error al actualizar los datos")
+                print("Error en la actualización. Revisa la terminal para más detalles.")
+                return False
             
     except Exception as e:
-        st.error(f"Error al ejecutar la actualización: {str(e)}")
+        st.error("❌ Error al ejecutar la actualización")
+        print(f"Error al ejecutar la actualización: {str(e)}")
         import traceback
-        st.code(traceback.format_exc())
+        traceback.print_exc()  # Imprime la traza del error en la terminal
         return False
 
 def crear_menu():
