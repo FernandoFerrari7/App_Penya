@@ -77,6 +77,3 @@ Desktop.ini
 
 # Log files
 *.log
-
-# usuarios
-data/usuarios.csv
