@@ -14,11 +14,7 @@ def ejecutar_actualizacion():
     try:
         # Mostrar spinner mientras se ejecuta el proceso
         with st.spinner('Actualizando datos desde el servidor...'):
-            # Imprimir información de diagnóstico
-            st.info("Iniciando proceso de actualización...")
-            st.info(f"Directorio actual: {os.getcwd()}")
-            
-            # Determinar la ruta correcta al script actualizar_github.py
+            # Determinar la ruta al script actualizar_github.py
             script_path = os.path.join('data', 'actualizar_github.py')
             
             # Verificar que el script existe
@@ -26,30 +22,18 @@ def ejecutar_actualizacion():
                 st.error(f"No se encontró el script en la ruta: {script_path}")
                 return False
             
-            st.info(f"Script encontrado en: {os.path.abspath(script_path)}")
-            
             # Configurar entorno para usar codificación UTF-8 en Windows
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
             
-            # Establecer un tiempo límite para el proceso (10 minutos)
-            timeout_seconds = 600
-            
-            # Imprimir comando que se va a ejecutar
-            command = [sys.executable, script_path]
-            st.info(f"Ejecutando comando: {' '.join(command)}")
-            
-            # Ejecutar el script directamente, sin cambiar de directorio
+            # Ejecutar el script de Python completo (sin cambiar directorios)
             process = subprocess.run(
-                command,
+                [sys.executable, script_path],
                 capture_output=True,
                 text=True,
                 env=env,
-                errors="replace",  # Reemplazar caracteres problemáticos
-                timeout=timeout_seconds  # Añadir tiempo límite
+                errors="replace"
             )
-            
-            st.info("Proceso terminado. Analizando resultados...")
         
         # Verificar el resultado
         if process.returncode == 0:
@@ -59,15 +43,11 @@ def ejecutar_actualizacion():
                 st.code(process.stdout)
             return True
         else:
-            st.error(f"❌ Error al actualizar los datos (código de salida: {process.returncode})")
+            st.error("❌ Error al actualizar los datos")
             with st.expander("Ver detalles del error"):
-                st.code(f"STDERR:\n{process.stderr}")
-                st.code(f"STDOUT:\n{process.stdout}")
+                st.code(process.stderr)
             return False
             
-    except subprocess.TimeoutExpired:
-        st.error(f"❌ El proceso de actualización excedió el límite de tiempo ({timeout_seconds} segundos)")
-        return False
     except Exception as e:
         st.error(f"Error al ejecutar la actualización: {str(e)}")
         import traceback
