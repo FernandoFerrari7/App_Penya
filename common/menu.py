@@ -14,8 +14,8 @@ def ejecutar_actualizacion():
     try:
         # Mostrar spinner mientras se ejecuta el proceso
         with st.spinner('Actualizando datos desde el servidor...'):
-            # Determinar la ruta al script actualizar_github.py
-            script_path = os.path.join('data', 'actualizar_github.py')
+            # Determinar la ruta al script actualizar_datos.py
+            script_path = os.path.join('data', 'actualizar_datos.py')
             
             # Verificar que el script existe
             if not os.path.exists(script_path):
@@ -23,35 +23,44 @@ def ejecutar_actualizacion():
                 print(f"Error: No se encontró el script en la ruta: {script_path}")
                 return False
             
-            # Ejecutar el script de Python (sin capturar la salida para que vaya a la terminal)
-            # Esto permitirá ver la salida en tiempo real en la terminal donde se ejecuta Streamlit
+            # Ejecutar el script de Python
             process = subprocess.Popen(
                 [sys.executable, script_path],
-                stdout=None,  # Usar la terminal actual
-                stderr=None,  # Usar la terminal actual
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
                 text=True,
                 env=os.environ.copy()
             )
             
             # Esperar a que termine el proceso
-            return_code = process.wait()
+            stdout, stderr = process.communicate()
+            return_code = process.returncode
+            
+            # Mostrar resumen del proceso en la terminal
+            print("RESUMEN DE LA ACTUALIZACIÓN:")
+            print(stdout)
+            
+            if stderr:
+                print("ERRORES DURANTE LA ACTUALIZACIÓN:")
+                print(stderr)
             
             # Verificar el resultado
             if return_code == 0:
-                st.success("✅ Datos actualizados correctamente")
+                st.success("Datos actualizados correctamente")
+                st.info("Se ha iniciado un nuevo despliegue en Render. Los cambios estarán disponibles en unos minutos.")
                 return True
             else:
-                st.error("❌ Error al actualizar los datos")
+                st.error("Error al actualizar los datos")
                 print("Error en la actualización. Revisa la terminal para más detalles.")
                 return False
             
     except Exception as e:
-        st.error("❌ Error al ejecutar la actualización")
+        st.error("Error al ejecutar la actualización")
         print(f"Error al ejecutar la actualización: {str(e)}")
         import traceback
         traceback.print_exc()  # Imprime la traza del error en la terminal
         return False
-
+    
 def crear_menu():
     """
     Crea un menú de navegación horizontal en la parte superior de la aplicación
