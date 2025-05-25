@@ -94,7 +94,7 @@ def cargar_datos():
     # Cargar los archivos CSV
     actas = pd.read_csv(os.path.join(data_path, "Actas_unificado.csv"))
     goles = pd.read_csv(os.path.join(data_path, "Goles_unificado.csv"))
-    jornadas = pd.read_csv(os.path.join(data_path, "Jornadas_unificado.csv"))
+    jornadas = pd.read_csv(os.path.join(data_path, "Repositorio/Listado_Jornadas.csv"))
     sustituciones = pd.read_csv(os.path.join(data_path, "Sustituciones_unificado.csv"))
     
     # Filtrar solo datos de Penya Independent
