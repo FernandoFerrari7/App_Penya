@@ -15,7 +15,7 @@ def ejecutar_actualizacion():
         # Mostrar spinner mientras se ejecuta el proceso
         with st.spinner('Actualizando datos desde el servidor...'):
             # Determinar la ruta al script actualizar_datos.py
-            script_path = os.path.join('data', 'actualizar_datos.py')
+            script_path = os.path.join('data', 'actualizar_datos_corregido.py')
             
             # Verificar que el script existe
             if not os.path.exists(script_path):
