@@ -227,58 +227,54 @@ def generate_jugador_pdf(data, jugador_seleccionado):
                 x_pos += col_widths[idx]
             pdf.ln()
             
-            # Datos de la tabla 
-            pdf.set_font('Arial', '', 6)  
-            
-           
-            row_height = 4  
+            # SOLUCIÓN: Calcular dinámicamente el alto de fila para que TODOS los partidos quepan
+            pdf.set_font('Arial', '', 6)
             
             # Calcular altura disponible para la tabla
-            remaining_space = 280 - pdf.get_y()  
-            max_rows_possible = int(remaining_space / row_height)
+            remaining_space = 280 - pdf.get_y()  # Espacio hasta el final de la página
+            num_partidos = len(tabla_partidos)
             
-            # MEJORA: Usando la altura reducida, podemos mostrar más filas
-            # Mostrar todas las filas sin limitar si caben en el espacio
-            for idx, row in tabla_partidos.iterrows():
-                # Color de fondo según condición
-                if row['Condición'] == 'Titular':
-                    pdf.set_fill_color(int(PENYA_PRIMARY_COLOR[1:3], 16), int(PENYA_PRIMARY_COLOR[3:5], 16), int(PENYA_PRIMARY_COLOR[5:7], 16))
-                    fill = True
-                    pdf.set_text_color(0, 0, 0)  # Texto negro sobre naranja
-                else:
-                    pdf.set_fill_color(int(PENYA_SECONDARY_COLOR[1:3], 16), int(PENYA_SECONDARY_COLOR[3:5], 16), int(PENYA_SECONDARY_COLOR[5:7], 16))
-                    fill = True
-                    pdf.set_text_color(255, 255, 255)  # Texto blanco sobre negro
+            # Si hay partidos, calcular el alto óptimo por fila
+            if num_partidos > 0:
+                # Calcular alto de fila dinámicamente para que quepan todos los partidos
+                # Dejamos un pequeño margen de seguridad
+                row_height = max(2.5, min(4.0, (remaining_space - 5) / num_partidos))
                 
-                x_pos = izq_x
-                pdf.set_xy(x_pos, pdf.get_y())
-                pdf.cell(col_widths[0], row_height, str(int(row['Jornada'])), 1, 0, 'C', fill)  # Asegurar que jornada sea entero
-                x_pos += col_widths[0]
+                # Datos de la tabla - MOSTRAR TODOS LOS PARTIDOS
+                for idx, row in tabla_partidos.iterrows():
+                    # Color de fondo según condición
+                    if row['Condición'] == 'Titular':
+                        pdf.set_fill_color(int(PENYA_PRIMARY_COLOR[1:3], 16), int(PENYA_PRIMARY_COLOR[3:5], 16), int(PENYA_PRIMARY_COLOR[5:7], 16))
+                        fill = True
+                        pdf.set_text_color(0, 0, 0)  # Texto negro sobre naranja
+                    else:
+                        pdf.set_fill_color(int(PENYA_SECONDARY_COLOR[1:3], 16), int(PENYA_SECONDARY_COLOR[3:5], 16), int(PENYA_SECONDARY_COLOR[5:7], 16))
+                        fill = True
+                        pdf.set_text_color(255, 255, 255)  # Texto blanco sobre negro
+                    
+                    x_pos = izq_x
+                    pdf.set_xy(x_pos, pdf.get_y())
+                    pdf.cell(col_widths[0], row_height, str(int(row['Jornada'])), 1, 0, 'C', fill)
+                    x_pos += col_widths[0]
+                    
+                    pdf.set_xy(x_pos, pdf.get_y())
+                    # Truncar rival si es muy largo para evitar problemas de espacio
+                    rival_text = str(row['Rival'])
+                    if len(rival_text) > 16:
+                        rival_text = rival_text[:15] + "."
+                    pdf.cell(col_widths[1], row_height, rival_text, 1, 0, 'L', fill)
+                    x_pos += col_widths[1]
+                    
+                    pdf.set_xy(x_pos, pdf.get_y())
+                    pdf.cell(col_widths[2], row_height, str(row['Condición']), 1, 0, 'C', fill)
+                    x_pos += col_widths[2]
+                    
+                    pdf.set_xy(x_pos, pdf.get_y())
+                    pdf.cell(col_widths[3], row_height, str(int(row['Minutos'])), 1, 0, 'C', fill)
+                    pdf.ln(row_height)
                 
                 # Restaurar color de texto
-                if row['Condición'] == 'Titular':
-                    pdf.set_text_color(0, 0, 0)  # Negro sobre naranja
-                else:
-                    pdf.set_text_color(255, 255, 255)  # Blanco sobre negro
-                
-                pdf.set_xy(x_pos, pdf.get_y())
-                # Truncar rival si es muy largo para evitar problemas de espacio
-                rival_text = str(row['Rival'])
-                if len(rival_text) > 16:  # Limitar texto largo
-                    rival_text = rival_text[:15] + "."
-                pdf.cell(col_widths[1], row_height, rival_text, 1, 0, 'L', fill)
-                x_pos += col_widths[1]
-                
-                pdf.set_xy(x_pos, pdf.get_y())
-                pdf.cell(col_widths[2], row_height, str(row['Condición']), 1, 0, 'C', fill)
-                x_pos += col_widths[2]
-                
-                pdf.set_xy(x_pos, pdf.get_y())
-                pdf.cell(col_widths[3], row_height, str(int(row['Minutos'])), 1, 0, 'C', fill)  # Asegurar que minutos sea entero
-                pdf.ln(row_height)  # Ajustar el salto de línea al alto de la fila
-            
-            # Restaurar color de texto
-            pdf.set_text_color(0, 0, 0)
+                pdf.set_text_color(0, 0, 0)
         else:
             pdf.set_xy(izq_x, section_start_y + 40)
             pdf.set_font('Arial', '', 10)
